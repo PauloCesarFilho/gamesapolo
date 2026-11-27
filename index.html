@@ -1157,7 +1157,7 @@
             const bomberWalkY = 114 + Math.cos(t * 1.8) * 8;
             drawRedBomberSprite(p2ctx, bomberWalkX, bomberWalkY, 1.45, t);
 
-            // 4. BANNER CARTUCHO 3 (TINY ZABBLE PIXEL POP)
+            // 4. BANNER CARTUCHO 3 (TINY ZABBLE PIXEL POP - TÍTULO CENTRALIZADO E MONSTROS VISÍVEIS)
             const zg = p3ctx.createLinearGradient(0, 0, 0, 200);
             zg.addColorStop(0, '#1f1a5e'); zg.addColorStop(0.6, '#3a2d8c'); zg.addColorStop(1, '#8878c6');
             p3ctx.fillStyle = zg; p3ctx.fillRect(0, 0, 320, 200);
@@ -1179,9 +1179,9 @@
             }
             p3ctx.fillStyle = '#5c3a26'; p3ctx.fillRect(0, 186, 320, 14);
             p3ctx.fillStyle = '#8f6040'; p3ctx.fillRect(0, 186, 320, 2);
-            if (zLogo.complete && zLogo.naturalWidth) p3ctx.drawImage(zLogo, 32, 6, 256, 78);
-            if (zA.complete && zA.naturalWidth) p3ctx.drawImage(zA, 52, 98 + Math.round(Math.sin(t * 3) * 3));
-            if (zB.complete && zB.naturalWidth) p3ctx.drawImage(zB, 188, 98 + Math.round(Math.sin(t * 3 + 1.5) * 3));
+            if (zLogo.complete && zLogo.naturalWidth) p3ctx.drawImage(zLogo, 42, 8, 236, 72);
+            if (zA.complete && zA.naturalWidth) p3ctx.drawImage(zA, 64, 92 + Math.round(Math.sin(t * 3) * 3));
+            if (zB.complete && zB.naturalWidth) p3ctx.drawImage(zB, 176, 92 + Math.round(Math.sin(t * 3 + 1.5) * 3));
 
             // 5. BANNERS DOS CARTUCHOS #04, #05 E #06 (EM BREVE)
             for (const item of soonCanvases) {
