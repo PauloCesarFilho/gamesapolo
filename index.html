@@ -196,7 +196,7 @@
             </div>
         </section>
 
-        <!-- GRADE DE CARTUCHOS (3 JOGOS ATIVOS + 3 CARTUCHOS EM BREVE) -->
+        <!-- GRADE DE CARTUCHOS (4 JOGOS ATIVOS + 2 CARTUCHOS EM BREVE) -->
         <section id="games-grid" class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
 
             <!-- =============================================================== -->
@@ -272,9 +272,6 @@
 
                     <div class="relative w-full aspect-[16/10] bg-[#080710] border-2 border-slate-600 mb-3 overflow-hidden">
                         <canvas id="preview-game-3" width="320" height="200" class="pixel-canvas w-full h-full"></canvas>
-                        <div class="absolute top-2 left-2 bg-black/80 border border-pink-400/60 px-1.5 py-0.5 text-[6px] text-pink-300">
-                            NOVO!
-                        </div>
                     </div>
 
                     <h2 id="title-game-3" class="text-xs sm:text-sm text-yellow-300 leading-snug mb-2">
@@ -290,30 +287,33 @@
             </article>
 
             <!-- =============================================================== -->
-            <!-- CARTUCHO 4: EM BREVE                                            -->
+            <!-- CARTUCHO 4: BUG PANIC                                         -->
             <!-- =============================================================== -->
-            <article data-index="3" data-soon="true" class="game-card snes-card rounded flex flex-col justify-between p-4 cursor-pointer opacity-90">
+            <article data-index="3" class="game-card snes-card rounded flex flex-col justify-between p-4 cursor-pointer">
                 <div>
                     <div class="flex items-center justify-between gap-2 mb-3 pb-2 border-b-2 border-slate-800">
                         <div class="cartridge-grip w-10 h-4 border border-slate-700"></div>
-                        <span class="text-[7px] bg-amber-500/20 text-amber-300 border border-amber-400/50 px-2 py-0.5">
+                        <span class="text-[7px] bg-sky-500/20 text-sky-300 border border-sky-400/50 px-2 py-0.5">
                             CARTUCHO #04
                         </span>
                         <div class="cartridge-grip w-10 h-4 border border-slate-700"></div>
                     </div>
 
-                    <div class="relative w-full aspect-[16/10] bg-[#080710] border-2 border-slate-700 mb-3 overflow-hidden">
-                        <canvas id="preview-soon-4" width="320" height="200" class="pixel-canvas w-full h-full"></canvas>
+                    <div class="relative w-full aspect-[16/10] bg-[#080710] border-2 border-slate-600 mb-3 overflow-hidden">
+                        <canvas id="preview-game-4" width="320" height="200" class="pixel-canvas w-full h-full"></canvas>
+                        <div class="absolute top-2 left-2 bg-black/80 border border-pink-400/60 px-1.5 py-0.5 text-[6px] text-pink-300">
+                            NOVO!
+                        </div>
                     </div>
 
-                    <h2 class="text-xs sm:text-sm text-slate-400 leading-snug mb-2">
-                        EM BREVE
+                    <h2 id="title-game-4" class="text-xs sm:text-sm text-yellow-300 leading-snug mb-2">
+                        BUG PANIC
                     </h2>
                 </div>
 
                 <div class="flex flex-col gap-2 pt-2 border-t border-slate-800">
-                    <button data-soon="true" class="snes-btn snes-btn-slate w-full py-3 text-[9px]">
-                        🔒 EM BREVE
+                    <button data-action="runner" data-game="bugpanic" class="snes-btn snes-btn-green w-full py-3 text-[9px]">
+                        ▶ JOGAR AGORA
                     </button>
                 </div>
             </article>
@@ -415,7 +415,8 @@
                 ├── 📄 <strong class="text-white">index.html</strong> <span class="text-amber-300">← (Portal Games Apolo)</span><br>
                 ├── 📁 <strong class="text-sky-300">tinywings</strong> └ 📄 index.html <span class="text-slate-400">(1º jogo)</span><br>
                 ├── 📁 <strong class="text-red-400">tinybomb</strong> └ 📄 index.html <span class="text-slate-400">(2º jogo)</span><br>
-                └── 📁 <strong class="text-pink-300">zabble</strong> └ 📄 index.html <span class="text-slate-400">(3º jogo)</span>
+                ├── 📁 <strong class="text-pink-300">zabble</strong> └ 📄 index.html <span class="text-slate-400">(3º jogo)</span><br>
+                └── 📁 <strong class="text-lime-300">bug-panic</strong> └ 📄 index.html <span class="text-slate-400">(4º jogo)</span>
             </div>
 
             <div class="flex flex-col sm:flex-row gap-2">
@@ -442,12 +443,17 @@
             zabble: {
                 titulo: 'TINY ZABBLE PIXEL POP',
                 url: './zabble/index.html'
+            },
+            bugpanic: {
+                titulo: 'BUG PANIC',
+                url: './bug-panic/index.html'
             }
         };
 
         document.getElementById('title-game-1').textContent = CONFIG_JOGOS.jogo1.titulo;
         document.getElementById('title-game-2').textContent = CONFIG_JOGOS.tinybomb.titulo;
         document.getElementById('title-game-3').textContent = CONFIG_JOGOS.zabble.titulo;
+        document.getElementById('title-game-4').textContent = CONFIG_JOGOS.bugpanic.titulo;
 
         /**
          * ============================================================================
@@ -553,7 +559,11 @@
         const p3ctx = prev3Canvas.getContext('2d');
         p3ctx.imageSmoothingEnabled = false;
 
-        const soonCanvases = [4, 5, 6].map(num => {
+        const prev4Canvas = document.getElementById('preview-game-4');
+        const p4ctx = prev4Canvas.getContext('2d');
+        p4ctx.imageSmoothingEnabled = false;
+
+        const soonCanvases = [5, 6].map(num => {
             const c = document.getElementById(`preview-soon-${num}`);
             const ctx = c.getContext('2d');
             ctx.imageSmoothingEnabled = false;
@@ -968,7 +978,7 @@
             }
         }
 
-        // Tela animada de "EM BREVE" para os cartuchos #04, #05 e #06
+        // Tela animada de "EM BREVE" para os cartuchos #05 e #06
         function drawComingSoonBanner(ctx, num, t) {
             ctx.fillStyle = '#090814';
             ctx.fillRect(0, 0, 320, 200);
@@ -1021,6 +1031,146 @@
             ctx.fillText('EM BREVE', 162, 122);
             ctx.fillStyle = blink ? '#facc15' : '#f59e0b';
             ctx.fillText('EM BREVE', 160, 120);
+        }
+
+        // Besourinho pixelado do Cartucho #04 (Bug Panic)
+        function drawPixelBug(ctx, cx, cy, main, dark, light, t, seed = 0) {
+            const x = Math.floor(cx);
+            const y = Math.floor(cy);
+            const leg = Math.floor(t * 12 + seed) % 2 === 0 ? 2 : -2;
+
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+            ctx.fillRect(x - 10, y + 11, 20, 3);
+
+            ctx.fillStyle = '#05070a';
+            for (let i = 0; i < 3; i++) {
+                const ly = y - 5 + i * 5;
+                const off = i % 2 === 0 ? leg : -leg;
+                ctx.fillRect(x - 14, ly + off, 6, 2);
+                ctx.fillRect(x + 8, ly - off, 6, 2);
+            }
+            ctx.fillRect(x - 6, y - 17, 2, 5);
+            ctx.fillRect(x + 4, y - 17, 2, 5);
+
+            ctx.fillStyle = dark;
+            ctx.fillRect(x - 9, y - 11, 18, 22);
+            ctx.fillRect(x - 7, y - 13, 14, 26);
+
+            ctx.fillStyle = main;
+            ctx.fillRect(x - 7, y - 9, 14, 18);
+            ctx.fillRect(x - 5, y - 11, 10, 22);
+
+            ctx.fillStyle = dark;
+            ctx.fillRect(x - 1, y - 5, 2, 15);
+
+            ctx.fillStyle = light;
+            ctx.fillRect(x - 5, y - 7, 3, 5);
+            ctx.fillRect(x + 2, y - 7, 3, 3);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(x - 4, y - 11, 3, 3);
+            ctx.fillRect(x + 1, y - 11, 3, 3);
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(x - 3, y - 10, 1, 2);
+            ctx.fillRect(x + 2, y - 10, 1, 2);
+        }
+
+        function drawBugPanicPreview(ctx, t) {
+            // Fundo: placa de circuito escura
+            ctx.fillStyle = '#071a14';
+            ctx.fillRect(0, 0, 320, 200);
+
+            ctx.strokeStyle = '#0f3328';
+            ctx.lineWidth = 1;
+            const off = Math.floor((t * 10) % 20);
+            for (let x = off; x < 320; x += 20) {
+                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 200); ctx.stroke();
+            }
+            for (let y = off; y < 200; y += 20) {
+                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(320, y); ctx.stroke();
+            }
+
+            // Trilhas e chips
+            ctx.fillStyle = '#14573f';
+            ctx.fillRect(0, 150, 120, 3);
+            ctx.fillRect(117, 150, 3, 36);
+            ctx.fillRect(200, 120, 120, 3);
+            ctx.fillRect(200, 120, 3, 60);
+            ctx.fillStyle = '#0b231b';
+            ctx.fillRect(262, 140, 40, 40);
+            ctx.fillStyle = '#14573f';
+            ctx.fillRect(264, 142, 36, 36);
+            ctx.fillStyle = '#0b231b';
+            ctx.fillRect(270, 148, 24, 24);
+            for (let i = 0; i < 4; i++) {
+                ctx.fillStyle = '#facc15';
+                ctx.fillRect(259, 146 + i * 9, 3, 3);
+                ctx.fillRect(302, 146 + i * 9, 3, 3);
+            }
+
+            // Besouros em pânico
+            const bugs = [
+                { m: '#ef4444', d: '#7f1d1d', l: '#fca5a5', bx: 70,  by: 120, rx: 26, ry: 14, sp: 2.4 },
+                { m: '#22c55e', d: '#14532d', l: '#bbf7d0', bx: 150, by: 150, rx: 34, ry: 10, sp: 1.9 },
+                { m: '#f59e0b', d: '#78350f', l: '#fde68a', bx: 232, by: 110, rx: 22, ry: 16, sp: 2.8 },
+                { m: '#38bdf8', d: '#0c4a6e', l: '#bae6fd', bx: 110, by: 82,  rx: 30, ry: 12, sp: 2.1 }
+            ];
+            bugs.forEach((b, i) => {
+                const px = b.bx + Math.sin(t * b.sp + i * 1.7) * b.rx;
+                const py = b.by + Math.cos(t * b.sp * 1.3 + i) * b.ry;
+                drawPixelBug(ctx, px, py, b.m, b.d, b.l, t, i);
+            });
+
+            // Mata-moscas batendo e mancha de esmagamento
+            const cycle = t % 3;
+            const sx = 200, sy = 150;
+            if (cycle < 0.35) {
+                const drop = Math.floor((cycle / 0.35) * 30);
+                ctx.fillStyle = '#92400e';
+                ctx.fillRect(sx - 3, sy - 70 + drop, 6, 46);
+                ctx.fillStyle = '#1e293b';
+                ctx.fillRect(sx - 15, sy - 26 + drop, 30, 26);
+                ctx.fillStyle = '#64748b';
+                for (let gx = 0; gx < 5; gx++) {
+                    for (let gy = 0; gy < 4; gy++) {
+                        ctx.fillRect(sx - 13 + gx * 6, sy - 24 + drop + gy * 6, 4, 4);
+                    }
+                }
+            } else if (cycle < 1.6) {
+                const fade = 1 - (cycle - 0.35) / 1.25;
+                ctx.globalAlpha = Math.max(0.2, fade);
+                ctx.fillStyle = '#84cc16';
+                ctx.fillRect(sx - 14, sy - 4, 28, 12);
+                ctx.fillRect(sx - 8, sy - 10, 16, 24);
+                ctx.fillRect(sx - 20, sy, 6, 4);
+                ctx.fillRect(sx + 14, sy + 2, 6, 4);
+                ctx.fillStyle = '#d9f99d';
+                ctx.fillRect(sx - 6, sy - 2, 8, 4);
+                ctx.globalAlpha = 1;
+            }
+
+            // Título
+            const alert = Math.floor(t * 3) % 2 === 0;
+            ctx.textAlign = 'center';
+            ctx.font = 'bold 20px "Press Start 2P", monospace';
+            ctx.fillStyle = '#000000';
+            ctx.fillText('BUG PANIC', 164, 44);
+            ctx.fillStyle = alert ? '#ef4444' : '#f87171';
+            ctx.fillText('BUG PANIC', 160, 40);
+
+            ctx.font = 'bold 7px "Press Start 2P", monospace';
+            ctx.fillStyle = '#facc15';
+            ctx.fillText(alert ? '!! ALERTA !!' : '!!         !!', 160, 58);
+
+            // HUD
+            ctx.textAlign = 'left';
+            ctx.font = 'bold 8px "Press Start 2P", monospace';
+            ctx.fillStyle = '#ffffff';
+            ctx.fillText('000420', 8, 13);
+            ctx.textAlign = 'right';
+            ctx.font = '7px "Press Start 2P", monospace';
+            ctx.fillStyle = '#94a3b8';
+            ctx.fillText('HI 003150', 312, 12);
         }
 
         function renderAllCanvases(t) {
@@ -1257,7 +1407,10 @@
             drawZabbleCreature(p3ctx, 114, 132 + Math.round(Math.sin(t * 3) * 3), 'blue', t);
             drawZabbleCreature(p3ctx, 206, 132 + Math.round(Math.sin(t * 3 + 1.5) * 3), 'green', t);
 
-            // 5. BANNERS DOS CARTUCHOS #04, #05 E #06 (EM BREVE)
+            // 5. BANNER CARTUCHO 4 (BUG PANIC)
+            drawBugPanicPreview(p4ctx, t);
+
+            // 6. BANNERS DOS CARTUCHOS #05 E #06 (EM BREVE)
             for (const item of soonCanvases) {
                 drawComingSoonBanner(item.ctx, item.num, t);
             }
@@ -1438,6 +1591,7 @@
                 if (idx === 0) launchGame('jogo1');
                 else if (idx === 1) launchGame('tinybomb');
                 else if (idx === 2) launchGame('zabble');
+                else if (idx === 3) launchGame('bugpanic');
                 else {
                     sfx.locked();
                     showToast('🔒 NOVO JOGO EM DESENVOLVIMENTO — EM BREVE!');
