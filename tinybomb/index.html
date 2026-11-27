@@ -1,0 +1,2794 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>TINY BOMB PIXEL ARENA - Games Apolo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+
+    <!-- Firebase SDK v10 (Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+		
+		/* Remove selo "Powered by Netlify" */
+		#netlify-badge,
+		#netlify-badge-container,
+		a[href*="netlify.com"],
+		div[id*="netlify" i],
+		div[class*="netlify" i],
+		iframe[src*="netlify.com"],
+		[data-netlify-badge] {
+			display: none !important;
+			visibility: hidden !important;
+			opacity: 0 !important;
+			pointer-events: none !important;
+		}
+		
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #090812;
+            background-image: radial-gradient(circle at 50% 25%, #1f1938 0%, #090812 100%);
+            color: #f8fafc;
+            font-family: 'Press Start 2P', monospace;
+            overflow-x: hidden;
+            overscroll-behavior: none;
+        }
+
+        /* Estilo Retro SNES / Atari Box */
+        .retro-panel {
+            background: #141224;
+            border: 4px solid #f59e0b;
+            box-shadow:
+                0 0 0 4px #000000,
+                0 12px 30px rgba(0, 0, 0, 0.85),
+                inset 0 0 0 2px #fde047;
+        }
+
+        .retro-subpanel {
+            background: #0b0a14;
+            border: 2px solid #475569;
+            box-shadow: inset 0 2px 6px rgba(0,0,0,0.8);
+        }
+
+        .retro-input {
+            background: #05050a;
+            border: 2px solid #64748b;
+            color: #fef08a;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 11px;
+            padding: 10px 12px;
+            outline: none;
+        }
+        .retro-input:focus {
+            border-color: #facc15;
+            box-shadow: 0 0 8px rgba(250, 204, 21, 0.4);
+        }
+
+        .retro-btn {
+            background: #2563eb;
+            color: #ffffff;
+            border: 2px solid #93c5fd;
+            box-shadow: 0 4px 0 #1e3a8a, 0 0 0 2px #000;
+            font-family: 'Press Start 2P', monospace;
+            transition: transform 0.05s;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+        .retro-btn:hover {
+            filter: brightness(1.1);
+        }
+        .retro-btn:active, .retro-btn.pressed {
+            transform: translateY(3px);
+            box-shadow: 0 1px 0 #1e3a8a, 0 0 0 2px #000;
+        }
+        .retro-btn:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
+        .retro-btn-amber {
+            background: #d97706;
+            border-color: #fde047;
+            box-shadow: 0 4px 0 #78350f, 0 0 0 2px #000;
+        }
+        .retro-btn-amber:active, .retro-btn-amber.pressed {
+            box-shadow: 0 1px 0 #78350f, 0 0 0 2px #000;
+        }
+
+        .retro-btn-green {
+            background: #16a34a;
+            border-color: #86efac;
+            box-shadow: 0 4px 0 #14532d, 0 0 0 2px #000;
+        }
+        .retro-btn-green:active, .retro-btn-green.pressed {
+            box-shadow: 0 1px 0 #14532d, 0 0 0 2px #000;
+        }
+
+        .retro-btn-red {
+            background: #dc2626;
+            border-color: #fca5a5;
+            box-shadow: 0 4px 0 #7f1d1d, 0 0 0 2px #000;
+        }
+        .retro-btn-red:active, .retro-btn-red.pressed {
+            box-shadow: 0 1px 0 #7f1d1d, 0 0 0 2px #000;
+        }
+
+        .retro-btn-slate {
+            background: #334155;
+            border-color: #94a3b8;
+            box-shadow: 0 4px 0 #0f172a, 0 0 0 2px #000;
+        }
+
+        /* ===== LAYOUT DA PARTIDA: CABE 100% TANTO EM PÉ QUANTO DEITADO ===== */
+        body.in-game {
+            padding: 0 !important;
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #05050a;
+        }
+
+        body.in-game #screen-game {
+            width: 100%;
+            height: 100%;
+            max-width: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        /* Wrapper do Mapa 21x21 (504x540 com HUD de 36px) */
+        #canvas-wrapper {
+            position: relative;
+            aspect-ratio: 504 / 540;
+            background: #000;
+            border: 3px solid #334155;
+            box-shadow: 0 0 0 3px #000, 0 10px 30px rgba(0,0,0,0.9);
+            overflow: hidden;
+            width: min(98vw, calc(96dvh * 504 / 540));
+            height: auto;
+        }
+
+        #gameCanvas, .pixel-canvas {
+            image-rendering: -moz-crisp-edges;
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: pixelated;
+        }
+
+        #gameCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .crt-scanlines {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(
+                to bottom,
+                rgba(255, 255, 255, 0),
+                rgba(255, 255, 255, 0) 50%,
+                rgba(0, 0, 0, 0.20) 50%,
+                rgba(0, 0, 0, 0.20)
+            );
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 15;
+        }
+
+        /* ===== Controles Touch de Resposta Instantânea ===== */
+        #touch-controls {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 40;
+            pointer-events: none;
+            touch-action: none;
+        }
+
+        #joy-base {
+            position: absolute;
+            width: 146px;
+            height: 146px;
+            border-radius: 50%;
+            background: rgba(10, 30, 90, 0.35);
+            border: 4px solid rgba(59, 130, 246, 0.75);
+            pointer-events: auto;
+            touch-action: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #joy-base.active {
+            background: rgba(15, 45, 130, 0.55);
+            border-color: #60a5fa;
+        }
+        #joy-knob {
+            width: 78px;
+            height: 78px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 38% 30%, #60a5fa 0%, #2563eb 55%, #1d4ed8 100%);
+            border: 3px solid #93c5fd;
+            box-shadow: 0 4px 0 #0a3d91;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            will-change: transform;
+            pointer-events: none;
+        }
+
+        #atk-zone {
+            position: absolute;
+            width: 132px;
+            height: 132px;
+            pointer-events: none;
+        }
+        #btn-touch-bomb {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 4px solid rgba(239, 68, 68, 0.8);
+            background: rgba(127, 29, 29, 0.32);
+            padding: 0;
+            pointer-events: auto;
+            touch-action: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .atk-core {
+            width: 94px;
+            height: 94px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 38% 30%, #ff7a6b 0%, #ef4435 45%, #c92a1e 100%);
+            border: 3px solid #fca5a5;
+            box-shadow: 0 5px 0 #6b150f;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #btn-touch-bomb.pressed .atk-core {
+            transform: translateY(3px);
+            box-shadow: 0 2px 0 #6b150f;
+        }
+
+        @media (pointer: coarse), (max-width: 920px) {
+            #touch-controls { display: block; }
+        }
+
+        /* MODO VERTICAL (EM PÉ): Mapa inteiro no topo + controles na área inferior */
+        @media (orientation: portrait) and (pointer: coarse), (orientation: portrait) and (max-width: 920px) {
+            body.in-game #screen-game {
+                flex-direction: column;
+                justify-content: flex-start;
+                padding-top: max(6px, env(safe-area-inset-top));
+                padding-bottom: 185px;
+            }
+            body.in-game #canvas-wrapper {
+                width: min(98vw, calc((100dvh - 195px) * 504 / 540));
+            }
+            #joy-base {
+                left: max(16px, env(safe-area-inset-left));
+                bottom: calc(16px + env(safe-area-inset-bottom));
+            }
+            #atk-zone {
+                right: max(16px, env(safe-area-inset-right));
+                bottom: calc(22px + env(safe-area-inset-bottom));
+            }
+        }
+
+        /* MODO HORIZONTAL (DEITADO): Mapa centralizado ocupando 96% da altura da tela e controles nas laterais */
+        @media (orientation: landscape) and (pointer: coarse), (orientation: landscape) and (max-width: 920px) {
+            body.in-game #screen-game {
+                flex-direction: row;
+                justify-content: center;
+                align-items: center;
+            }
+            body.in-game #canvas-wrapper {
+                height: 96dvh;
+                width: calc(96dvh * 504 / 540);
+                max-width: calc(100vw - 240px);
+                max-height: calc((100vw - 240px) * 540 / 504);
+            }
+            #joy-base {
+                left: max(14px, env(safe-area-inset-left));
+                bottom: max(16px, env(safe-area-inset-bottom));
+                width: 132px;
+                height: 132px;
+            }
+            #joy-knob {
+                width: 70px;
+                height: 70px;
+            }
+            #atk-zone {
+                right: max(14px, env(safe-area-inset-right));
+                bottom: max(20px, env(safe-area-inset-bottom));
+                width: 122px;
+                height: 122px;
+            }
+            .atk-core {
+                width: 86px;
+                height: 86px;
+            }
+        }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #090812; }
+        ::-webkit-scrollbar-thumb { background: #f59e0b; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-1.5 sm:p-3">
+
+    <!-- ========================================================================= -->
+    <!-- TELA 1: AUTENTICAÇÃO (SEM FAIXA AMARELA ACIMA DO TÍTULO)                  -->
+    <!-- ========================================================================= -->
+    <section id="screen-auth" class="w-full max-w-[480px] retro-panel p-4 sm:p-6 my-auto">
+        <div class="text-center mb-4">
+            <h1 class="text-base sm:text-xl text-yellow-300 drop-shadow-[2px_2px_0_#000] leading-snug">
+                TINY BOMB<br><span class="text-red-500">PIXEL ARENA</span>
+            </h1>
+        </div>
+
+        <div class="retro-subpanel p-3 border-2 border-emerald-500/60">
+            <div class="flex gap-2">
+                <input id="quick-nickname" type="text" maxlength="10" placeholder="SEU APELIDO" class="retro-input w-full uppercase">
+                <button id="btn-quick-play" type="button" class="retro-btn retro-btn-green px-3 py-2 text-[8px] shrink-0">
+                    JOGAR ▶
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========================================================================= -->
+    <!-- TELA 2: SALAS (TEXTOS LIMPOS CONFORME SOLICITADO)                         -->
+    <!-- ========================================================================= -->
+    <section id="screen-home" class="hidden w-full max-w-[660px] retro-panel p-4 sm:p-5 my-auto">
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-2 pb-3 mb-4 border-b-2 border-slate-800">
+            <div>
+                <h2 class="text-xs sm:text-sm text-yellow-300">SALAS</h2>
+            </div>
+            <div class="flex items-center gap-2">
+                <label class="text-[8px] text-amber-300">APELIDO:</label>
+                <input id="home-nickname" type="text" maxlength="10" class="retro-input w-28 py-1 px-2 text-[9px] uppercase">
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="retro-subpanel p-3.5 flex flex-col justify-between gap-4">
+                <div>
+                    <h3 class="text-[10px] text-amber-400 mb-3">CRIAR NOVA SALA</h3>
+                    <button id="btn-create-room" class="retro-btn retro-btn-green w-full py-3 text-[10px]">
+                        + CRIAR SALA AGORA
+                    </button>
+                </div>
+
+                <div class="pt-3 border-t border-slate-800">
+                    <h3 class="text-[10px] text-sky-400 mb-2">DIGITAR CÓDIGO DA SALA</h3>
+                    <div class="flex gap-2">
+                        <input id="input-room-code" type="text" maxlength="4" placeholder="ABCD" class="retro-input w-full text-center text-sm tracking-widest uppercase">
+                        <button id="btn-join-code" class="retro-btn retro-btn-amber px-4 text-[9px]">ENTRAR</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="retro-subpanel p-3.5 flex flex-col">
+                <div class="flex items-center justify-between mb-2">
+                    <h3 class="text-[10px] text-emerald-400">SALAS ABERTAS AGORA</h3>
+                    <span class="text-[7px] text-slate-400">TOQUE PARA ENTRAR</span>
+                </div>
+                <div id="open-rooms-list" class="flex-1 min-h-[150px] max-h-[190px] overflow-y-auto flex flex-col gap-2 pr-1">
+                    <div class="text-[8px] text-slate-500 text-center py-10">PROCURANDO SALAS NO SERVIDOR...</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="home-error" class="hidden mt-3 p-2 bg-red-950/80 border border-red-500 text-red-200 text-[8px] text-center"></div>
+    </section>
+
+    <!-- ========================================================================= -->
+    <!-- TELA 3: LOBBY DA SALA (CAMPANHA, PVP TODOS CONTRA TODOS E PVP DUPLAS 2V2) -->
+    <!-- ========================================================================= -->
+    <section id="screen-lobby" class="hidden w-full max-w-[760px] retro-panel p-3 sm:p-5 my-auto">
+        <div class="flex flex-wrap items-center justify-between gap-2 pb-3 mb-3 border-b-2 border-slate-800">
+            <div class="flex items-center gap-3">
+                <div class="bg-black border-2 border-yellow-400 px-3 py-1.5">
+                    <span class="text-[7px] text-slate-400 block">CÓDIGO DA SALA</span>
+                    <span id="lobby-room-code" class="text-sm sm:text-base text-yellow-300 tracking-widest">----</span>
+                </div>
+                <button id="btn-copy-code" class="retro-btn retro-btn-slate px-2.5 py-2 text-[8px]">COPIAR</button>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <button id="btn-leave-room" class="retro-btn retro-btn-red px-3 py-2 text-[8px]">SAIR DA SALA</button>
+            </div>
+        </div>
+
+        <div class="retro-subpanel p-3 mb-3">
+            <div class="flex flex-wrap items-center justify-end gap-2 mb-2">
+                <span id="lobby-mode-desc" class="text-[7px] text-emerald-300"></span>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2.5">
+                <button data-mode="CAMPAIGN" class="mode-btn retro-btn py-2.5 px-2 text-[8px] leading-relaxed">
+                    🗺️ CAMPANHA (1-2P)<br><span class="text-[7px] opacity-80">20 MAPAS + CHEFES</span>
+                </button>
+                <button data-mode="COMBAT" class="mode-btn retro-btn py-2.5 px-2 text-[8px] leading-relaxed">
+                    ⚔️ COMBATE PVP<br><span class="text-[7px] opacity-80">TODOS CONTRA TODOS</span>
+                </button>
+                <button data-mode="COMBAT_2V2" class="mode-btn retro-btn py-2.5 px-2 text-[8px] leading-relaxed">
+                    🤝 COMBATE 2V2<br><span class="text-[7px] opacity-80">TIME A vs TIME B</span>
+                </button>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800">
+                <div id="pvp-horse-picker" class="hidden items-center gap-2">
+                    <button id="btn-toggle-pvp-horse" class="retro-btn retro-btn-amber px-2.5 py-1 text-[7px]">
+                        🐴 CAVALO ESCONDIDO NO BLOCO: LIGADO
+                    </button>
+                </div>
+
+                <button id="btn-toggle-bots" class="retro-btn retro-btn-slate px-2 py-1 text-[7px] ml-auto">
+                    BOTS NAS VAGAS: ON
+                </button>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <div id="lobby-slots-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-2"></div>
+        </div>
+
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-2">
+            <span id="lobby-status-msg" class="text-[8px] text-slate-300">AGUARDANDO O LÍDER INICIAR A PARTIDA...</span>
+            <button id="btn-start-match" class="retro-btn retro-btn-green w-full sm:w-auto px-6 py-3 text-[10px]">
+                ▶ INICIAR PARTIDA AGORA
+            </button>
+        </div>
+    </section>
+
+    <!-- ========================================================================= -->
+    <!-- TELA 4: PARTIDA EM ANDAMENTO (ARENA 21x21)                                -->
+    <!-- ========================================================================= -->
+    <section id="screen-game" class="hidden w-full flex-col items-center">
+        <div id="canvas-wrapper">
+            <canvas id="gameCanvas" width="504" height="540"></canvas>
+            <div class="crt-scanlines"></div>
+
+            <!-- OVERLAY DE FIM DE PARTIDA / PRÓXIMA FASE -->
+            <div id="match-over-overlay" class="hidden absolute inset-0 bg-black/85 z-30 flex flex-col items-center justify-center p-4 text-center">
+                <div class="retro-panel p-5 max-w-[360px] w-full">
+                    <div id="over-badge" class="inline-block bg-amber-400 text-black text-[8px] px-2 py-0.5 mb-2">FIM DE PARTIDA</div>
+                    <h2 id="over-title" class="text-sm sm:text-base text-yellow-300 mb-2 leading-snug">VITÓRIA!</h2>
+                    <p id="over-subtitle" class="text-[8px] text-emerald-300 mb-4 leading-relaxed"></p>
+
+                    <div class="flex flex-col gap-2">
+                        <button id="btn-back-to-lobby" class="retro-btn retro-btn-green py-3 text-[9px] w-full">
+                            ↩ VOLTAR PARA A SALA
+                        </button>
+                        <button id="btn-rematch-now" class="retro-btn retro-btn-amber py-2.5 text-[8px] w-full">
+                            🔄 JOGAR NOVAMENTE MESMA SALA
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CONTROLES TOUCH ZERO-LAG (4 DIREÇÕES PURAS) -->
+        <div id="touch-controls">
+            <div id="joy-base" aria-label="Mover">
+                <div id="joy-knob">
+                    <svg viewBox="0 0 64 64" width="48" height="48" aria-hidden="true">
+                        <g fill="#ffffff" opacity="0.9">
+                            <path d="M32 6 L43 19 L21 19 Z"/>
+                            <path d="M32 58 L43 45 L21 45 Z"/>
+                            <path d="M6 32 L19 21 L19 43 Z"/>
+                            <path d="M58 32 L45 21 L45 43 Z"/>
+                        </g>
+                    </svg>
+                </div>
+            </div>
+
+            <div id="atk-zone">
+                <button id="btn-touch-bomb" type="button" aria-label="Plantar bomba">
+                    <span class="atk-core">
+                        <svg viewBox="0 0 64 64" width="46" height="46" aria-hidden="true">
+                            <rect x="30" y="8" width="5" height="9" rx="1" fill="#3b0d0d"/>
+                            <path d="M34 9 Q42 3 48 9" stroke="#3b0d0d" stroke-width="3" fill="none" stroke-linecap="round"/>
+                            <circle cx="50" cy="8" r="4" fill="#fde047"/>
+                            <circle cx="32" cy="38" r="20" fill="#2a0909"/>
+                            <circle cx="32" cy="38" r="17" fill="#111827"/>
+                            <ellipse cx="25" cy="31" rx="5" ry="4" fill="#ffffff" opacity="0.55"/>
+                        </svg>
+                    </span>
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        /**
+         * ============================================================================
+         * 1. CONFIGURAÇÃO DO FIREBASE
+         * ============================================================================
+         */
+        const firebaseConfig = {
+            apiKey: "AIzaSyAIcg4qTVdQc1sKlHpgjeJntrqTgVRYDGQ",
+            authDomain: "tiny-bomb-pixel-heroes.firebaseapp.com",
+            databaseURL: "https://tiny-bomb-pixel-heroes-default-rtdb.firebaseio.com",
+            projectId: "tiny-bomb-pixel-heroes",
+            storageBucket: "tiny-bomb-pixel-heroes.firebasestorage.app",
+            messagingSenderId: "552542143923",
+            appId: "1:552542143923:web:145617728a22e5edcbb7c6"
+        };
+
+        let app = null;
+        let auth = null;
+        let db = null;
+        let isOfflineFallback = false;
+
+        try {
+            app = firebase.initializeApp(firebaseConfig);
+            auth = firebase.auth();
+            db = firebase.database();
+        } catch (err) {
+            console.warn("Modo offline local ativado:", err);
+            isOfflineFallback = true;
+        }
+
+        /**
+         * ============================================================================
+         * 2. SKINS DOS JOGADORES
+         * ============================================================================
+         */
+        const PLAYER_SKINS = [
+            { name: 'VERMELHO', main: '#ef4444', light: '#fca5a5', dark: '#b91c1c' },
+            { name: 'AZUL',     main: '#3b82f6', light: '#93c5fd', dark: '#1d4ed8' },
+            { name: 'VERDE',    main: '#22c55e', light: '#86efac', dark: '#15803d' },
+            { name: 'AMARELO',  main: '#facc15', light: '#fef08a', dark: '#a16207' },
+            { name: 'ROXO',     main: '#a855f7', light: '#d8b4fe', dark: '#6b21a8' },
+            { name: 'LARANJA',  main: '#f97316', light: '#fdba74', dark: '#c2410c' },
+            { name: 'ROSA',     main: '#ec4899', light: '#f9a8d4', dark: '#9d174d' },
+            { name: 'CIANO',    main: '#06b6d4', light: '#67e8f9', dark: '#0e7490' },
+            { name: 'BRANCO',   main: '#e2e8f0', light: '#ffffff', dark: '#94a3b8' },
+            { name: 'CINZA',    main: '#6b7280', light: '#d1d5db', dark: '#374151' }
+        ];
+        const skinForSlot = (i) => PLAYER_SKINS[((i % PLAYER_SKINS.length) + PLAYER_SKINS.length) % PLAYER_SKINS.length];
+
+        /**
+         * ============================================================================
+         * 3. OS 20 MAPAS DA CAMPANHA
+         * ============================================================================
+         */
+        const BIOMES = [
+            {
+                name: 'FLORESTA',
+                floorA: '#15803d', floorB: '#166534', shadow: '#052e16',
+                wallTop: '#a3e635', wallMain: '#4d7c0f', wallDark: '#1a2e05',
+                brickMain: '#b45309', brickLight: '#f59e0b', mortar: '#451a03'
+            },
+            {
+                name: 'RUÍNAS DO SOL',
+                floorA: '#b45309', floorB: '#92400e', shadow: '#451a03',
+                wallTop: '#fde047', wallMain: '#ca8a04', wallDark: '#713f12',
+                brickMain: '#9a3412', brickLight: '#fb923c', mortar: '#431407'
+            },
+            {
+                name: 'CAVERNA DE CRISTAL',
+                floorA: '#1e3a8a', floorB: '#172554', shadow: '#090d16',
+                wallTop: '#67e8f9', wallMain: '#0284c7', wallDark: '#0c4a6e',
+                brickMain: '#6b21a8', brickLight: '#c084fc', mortar: '#2e1065'
+            },
+            {
+                name: 'FORTALEZA SOMBRIA',
+                floorA: '#3b0764', floorB: '#2e1065', shadow: '#090414',
+                wallTop: '#f43f5e', wallMain: '#9f1239', wallDark: '#4c0519',
+                brickMain: '#581c87', brickLight: '#e879f9', mortar: '#1e0538'
+            }
+        ];
+
+        const CAMPAIGN_STAGES = [
+            { level: 1,  biome: 0, title: '1. TRILHA DA FLORESTA',     hasHorse: false, monsters: [{ type: 'SLIME', count: 4 }] },
+            { level: 2,  biome: 0, title: '2. BOSQUE ESMERALDA',      hasHorse: true,  monsters: [{ type: 'SLIME', count: 4 }, { type: 'BAT', count: 2 }] },
+            { level: 3,  biome: 0, title: '3. PONTE DE CIPÓ',         hasHorse: false, monsters: [{ type: 'SLIME', count: 3 }, { type: 'BAT', count: 4 }] },
+            { level: 4,  biome: 0, title: '4. TEMPLO DA SELVA',       hasHorse: true,  monsters: [{ type: 'BAT', count: 5 }, { type: 'GOLEM', count: 2 }] },
+            { level: 5,  biome: 0, title: '5. CHEFE: REI SLIME',      hasHorse: false, bossName: 'REI SLIME', monsters: [{ type: 'BOSS_SLIME', count: 1 }, { type: 'SLIME', count: 3 }] },
+
+            { level: 6,  biome: 1, title: '6. DUNAS DOURADAS',        hasHorse: false, monsters: [{ type: 'BAT', count: 4 }, { type: 'GOLEM', count: 3 }] },
+            { level: 7,  biome: 1, title: '7. OÁSIS ESQUECIDO',       hasHorse: true,  monsters: [{ type: 'GOLEM', count: 4 }, { type: 'GHOST', count: 2 }] },
+            { level: 8,  biome: 1, title: '8. CANYON DE FOGO',        hasHorse: false, monsters: [{ type: 'GOLEM', count: 4 }, { type: 'PYRO', count: 3 }] },
+            { level: 9,  biome: 1, title: '9. PIRÂMIDE SOLAR',        hasHorse: true,  monsters: [{ type: 'GHOST', count: 3 }, { type: 'PYRO', count: 4 }] },
+            { level: 10, biome: 1, title: '10. CHEFE: GOLEM ANCESTRAL', hasHorse: false, bossName: 'GOLEM ANCESTRAL', monsters: [{ type: 'BOSS_GOLEM', count: 1 }, { type: 'GOLEM', count: 3 }] },
+
+            { level: 11, biome: 2, title: '11. MINA DE SAFIRA',       hasHorse: false, monsters: [{ type: 'GHOST', count: 4 }, { type: 'BAT', count: 4 }] },
+            { level: 12, biome: 2, title: '12. GRUTA CONGELADA',      hasHorse: true,  monsters: [{ type: 'GHOST', count: 4 }, { type: 'PYRO', count: 3 }] },
+            { level: 13, biome: 2, title: '13. ABISMO DE QUARTZO',    hasHorse: false, monsters: [{ type: 'PYRO', count: 4 }, { type: 'KNIGHT', count: 3 }] },
+            { level: 14, biome: 2, title: '14. SANTUÁRIO DE GELO',    hasHorse: true,  monsters: [{ type: 'GHOST', count: 4 }, { type: 'KNIGHT', count: 4 }] },
+            { level: 15, biome: 2, title: '15. CHEFE: DRAGÃO RUBRO',  hasHorse: false, bossName: 'DRAGÃO RUBRO', monsters: [{ type: 'BOSS_DRAGON', count: 1 }, { type: 'PYRO', count: 3 }] },
+
+            { level: 16, biome: 3, title: '16. PORTÃO DO ECLIPSE',    hasHorse: false, monsters: [{ type: 'KNIGHT', count: 5 }, { type: 'GHOST', count: 3 }] },
+            { level: 17, biome: 3, title: '17. CORREDOR FANTASMA',    hasHorse: true,  monsters: [{ type: 'KNIGHT', count: 5 }, { type: 'PYRO', count: 4 }] },
+            { level: 18, biome: 3, title: '18. TORRE DE OBSIDIANA',   hasHorse: false, monsters: [{ type: 'KNIGHT', count: 6 }, { type: 'GHOST', count: 4 }] },
+            { level: 19, biome: 3, title: '19. GUARDA REAL SOMBRIA',  hasHorse: true,  monsters: [{ type: 'KNIGHT', count: 6 }, { type: 'PYRO', count: 5 }] },
+            { level: 20, biome: 3, title: '20. CHEFE FINAL: REI SOMBRA', hasHorse: false, bossName: 'REI SOMBRA', monsters: [{ type: 'BOSS_SHADOW', count: 1 }, { type: 'KNIGHT', count: 4 }] }
+        ];
+
+        /**
+         * ============================================================================
+         * 4. SINTETIZADOR DE ÁUDIO 16-BIT
+         * ============================================================================
+         */
+        class RetroAudio {
+            constructor() {
+                this.ctx = null;
+                this.enabled = true;
+            }
+            init() {
+                if (!this.ctx) {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    if (AudioCtx) this.ctx = new AudioCtx();
+                }
+                if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+            }
+            tone(freq, dur, type = 'square', vol = 0.10, delay = 0) {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+                const t = this.ctx.currentTime + delay;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, t);
+                gain.gain.setValueAtTime(vol, t);
+                gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(t);
+                osc.stop(t + dur + 0.01);
+            }
+            blip() { this.tone(680, 0.04, 'square', 0.08); }
+            select() {
+                this.tone(523.25, 0.06, 'square', 0.10, 0);
+                this.tone(1046.5, 0.10, 'square', 0.10, 0.06);
+            }
+            bomb() {
+                this.tone(240, 0.05, 'triangle', 0.15, 0);
+                this.tone(150, 0.07, 'square', 0.10, 0.04);
+            }
+            horseNeigh() {
+                [440, 587.33, 659.25, 880, 659.25].forEach((f, i) =>
+                    this.tone(f, 0.06, 'triangle', 0.14, i * 0.045)
+                );
+            }
+            powerup() {
+                [587.33, 783.99, 987.77, 1174.66].forEach((f, i) => this.tone(f, 0.06, 'square', 0.10, i * 0.05));
+            }
+            explosion() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                const len = this.ctx.sampleRate * 0.32;
+                const buf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
+                const data = buf.getChannelData(0);
+                for (let i = 0; i < len; i++) {
+                    const step = Math.floor(i / 6) * 6;
+                    data[i] = ((Math.sin(step * 14.3) > 0 ? 1 : -1) * Math.random()) * Math.exp(-i / (this.ctx.sampleRate * 0.10));
+                }
+                const noise = this.ctx.createBufferSource();
+                noise.buffer = buf;
+                const filter = this.ctx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(560, now);
+                filter.frequency.exponentialRampToValueAtTime(75, now + 0.30);
+                const gain = this.ctx.createGain();
+                gain.gain.setValueAtTime(0.32, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.31);
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.ctx.destination);
+                noise.start(now);
+            }
+            win() {
+                [523.25, 659.25, 783.99, 1046.5, 783.99, 1046.5].forEach((f, i) =>
+                    this.tone(f, 0.12, 'square', 0.12, [0, 0.1, 0.2, 0.3, 0.44, 0.56][i])
+                );
+            }
+        }
+        const sfx = new RetroAudio();
+
+        /**
+         * ============================================================================
+         * 5. SPRITES 16-BIT
+         * ============================================================================
+         */
+        function drawUnmountedHorseSprite(ctx, cx, cy, animClock = 0, scale = 1) {
+            ctx.save();
+            ctx.translate(Math.floor(cx), Math.floor(cy));
+            ctx.scale(scale, scale);
+
+            const bob = Math.floor(Math.sin(animClock * 6) * 1.5);
+            const legSwing = Math.floor(Math.sin(animClock * 10) * 2);
+
+            ctx.fillStyle = 'rgba(0,0,0,0.45)';
+            ctx.fillRect(-10, 9, 20, 4);
+
+            ctx.fillStyle = '#141018';
+            ctx.fillRect(-9, -2 + bob, 18, 9);
+
+            ctx.fillStyle = '#78350f';
+            ctx.fillRect(-8, 6 + bob, 3, 4 + (legSwing > 0 ? 1 : 0));
+            ctx.fillRect(-4, 6 + bob, 3, 4 - (legSwing > 0 ? 1 : 0));
+            ctx.fillRect(3, 6 + bob, 3, 4 - (legSwing > 0 ? 1 : 0));
+            ctx.fillRect(6, 6 + bob, 3, 4 + (legSwing > 0 ? 1 : 0));
+            ctx.fillStyle = '#1c1917';
+            ctx.fillRect(-8, 9 + bob, 3, 2);
+            ctx.fillRect(6, 9 + bob, 3, 2);
+
+            ctx.fillStyle = '#facc15';
+            ctx.fillRect(-12, -1 + bob, 4, 3);
+            ctx.fillRect(-13, 1 + bob, 3, 4);
+
+            ctx.fillStyle = '#b45309';
+            ctx.fillRect(-8, -1 + bob, 16, 7);
+            ctx.fillStyle = '#d97706';
+            ctx.fillRect(-7, -1 + bob, 14, 4);
+
+            ctx.fillStyle = '#dc2626';
+            ctx.fillRect(-3, -2 + bob, 6, 4);
+            ctx.fillStyle = '#fde047';
+            ctx.fillRect(-2, -2 + bob, 4, 1);
+
+            ctx.fillStyle = '#141018';
+            ctx.fillRect(4, -9 + bob, 8, 9);
+            ctx.fillStyle = '#d97706';
+            ctx.fillRect(5, -8 + bob, 6, 7);
+            ctx.fillStyle = '#f59e0b';
+            ctx.fillRect(9, -6 + bob, 4, 4);
+
+            ctx.fillStyle = '#b45309';
+            ctx.fillRect(6, -11 + bob, 2, 3);
+            ctx.fillStyle = '#fde047';
+            ctx.fillRect(3, -8 + bob, 2, 6);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(7, -7 + bob, 2, 2);
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(8, -7 + bob, 1, 2);
+            ctx.fillStyle = '#ef4444';
+            ctx.fillRect(6, -4 + bob, 6, 1);
+
+            ctx.restore();
+        }
+
+        function drawBomberSprite(ctx, cx, cy, skin, dir = 'DOWN', animTime = 0, options = {}) {
+            const scale = options.scale || 1;
+            const step = animTime > 0 ? Math.floor(Math.sin(animTime) * 2.2) : 0;
+            const bounce = animTime > 0 ? Math.abs(Math.floor(Math.sin(animTime * 2) * 1.4)) : 0;
+            const mounted = !!options.mounted;
+            const OUT = '#141018';
+
+            ctx.save();
+            ctx.translate(Math.floor(cx), Math.floor(cy));
+            ctx.scale(scale, scale);
+
+            if (options.invulnBlink && Math.floor(Date.now() / 60) % 2 === 0) {
+                ctx.globalAlpha = 0.45;
+            }
+
+            ctx.fillStyle = 'rgba(0,0,0,0.45)';
+            ctx.fillRect(-9, 9, 18, 4);
+
+            const riderLift = mounted ? 5 : 0;
+            const by = -bounce - riderLift;
+
+            if (mounted) {
+                const hBob = bounce;
+                const hStep = step;
+
+                ctx.fillStyle = '#141018';
+                ctx.fillRect(-10, 0 - hBob, 20, 9);
+                ctx.fillStyle = '#b45309';
+                ctx.fillRect(-9, 1 - hBob, 18, 7);
+                ctx.fillStyle = '#d97706';
+                ctx.fillRect(-8, 1 - hBob, 16, 4);
+
+                ctx.fillStyle = '#78350f';
+                ctx.fillRect(-9, 7 - hBob, 3, 4 + Math.max(0, hStep));
+                ctx.fillRect(-5, 7 - hBob, 3, 4 + Math.max(0, -hStep));
+                ctx.fillRect(3, 7 - hBob, 3, 4 + Math.max(0, -hStep));
+                ctx.fillRect(6, 7 - hBob, 3, 4 + Math.max(0, hStep));
+                ctx.fillStyle = '#141018';
+                ctx.fillRect(-9, 10 - hBob + Math.max(0, hStep), 3, 2);
+                ctx.fillRect(6, 10 - hBob + Math.max(0, hStep), 3, 2);
+
+                ctx.fillStyle = '#facc15';
+                const tailX = dir === 'LEFT' ? 9 : -12;
+                ctx.fillRect(tailX, 1 - hBob, 3, 5);
+
+                ctx.fillStyle = '#dc2626';
+                ctx.fillRect(-5, 0 - hBob, 10, 4);
+                ctx.fillStyle = '#18181b';
+                ctx.fillRect(-6, 4 - hBob, 3, 3);
+                ctx.fillRect(3, 4 - hBob, 3, 3);
+            } else {
+                ctx.fillStyle = OUT;
+                ctx.fillRect(-6, by + 7 - Math.max(0, step), 5, 4);
+                ctx.fillRect(1, by + 7 - Math.max(0, -step), 5, 4);
+            }
+
+            ctx.fillStyle = OUT;
+            ctx.fillRect(-8, by - 1, 16, 9);
+            ctx.fillStyle = skin.main;
+            ctx.fillRect(-7, by, 14, 7);
+            ctx.fillStyle = skin.dark;
+            ctx.fillRect(-7, by + 4, 14, 3);
+            ctx.fillStyle = skin.light;
+            ctx.fillRect(-6, by, 12, 1);
+            ctx.fillStyle = '#f8fafc';
+            ctx.fillRect(-1, by + 2, 2, 2);
+
+            ctx.fillStyle = OUT;
+            ctx.fillRect(-10, by + step, 3, 6);
+            ctx.fillRect(7, by - step, 3, 6);
+            ctx.fillStyle = skin.main;
+            ctx.fillRect(-9, by + 1 + step, 2, 3);
+            ctx.fillRect(7, by + 1 - step, 2, 3);
+            ctx.fillStyle = '#f8fafc';
+            ctx.fillRect(-9, by + 4 + step, 2, 2);
+            ctx.fillRect(7, by + 4 - step, 2, 2);
+
+            ctx.fillStyle = OUT;
+            ctx.fillRect(-8, by - 13, 16, 13);
+            ctx.fillRect(-7, by - 14, 14, 1);
+            ctx.fillStyle = skin.main;
+            ctx.fillRect(-7, by - 13, 14, 12);
+            ctx.fillStyle = skin.light;
+            ctx.fillRect(-6, by - 13, 8, 2);
+            ctx.fillRect(-7, by - 11, 2, 4);
+            ctx.fillStyle = skin.dark;
+            ctx.fillRect(-7, by - 3, 14, 2);
+
+            if (dir !== 'UP') {
+                const shift = dir === 'LEFT' ? -2 : (dir === 'RIGHT' ? 2 : 0);
+                ctx.fillStyle = OUT;
+                ctx.fillRect(-6 + shift, by - 10, 12, 8);
+                ctx.fillStyle = '#fde8d0';
+                ctx.fillRect(-5 + shift, by - 9, 10, 6);
+                ctx.fillStyle = '#111827';
+                ctx.fillRect(-3 + shift, by - 8, 2, 4);
+                ctx.fillRect(1 + shift, by - 8, 2, 4);
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(-3 + shift, by - 8, 1, 1);
+                ctx.fillRect(1 + shift, by - 8, 1, 1);
+            }
+
+            ctx.fillStyle = OUT;
+            ctx.fillRect(-1, by - 17, 2, 4);
+            ctx.fillRect(-3, by - 20, 6, 5);
+            ctx.fillStyle = skin.light;
+            ctx.fillRect(-2, by - 19, 4, 3);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(-2, by - 19, 1, 1);
+
+            if (mounted) {
+                const hBob = bounce;
+                const headX = dir === 'LEFT' ? -9 : (dir === 'RIGHT' ? 5 : 0);
+                const headY = -3 - hBob;
+                ctx.fillStyle = '#141018';
+                ctx.fillRect(headX - 3, headY - 5, 8, 8);
+                ctx.fillStyle = '#d97706';
+                ctx.fillRect(headX - 2, headY - 4, 6, 6);
+                ctx.fillStyle = '#fde047';
+                ctx.fillRect(headX - 1, headY - 6, 4, 2);
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(headX, headY - 3, 2, 2);
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(headX + 1, headY - 3, 1, 2);
+                ctx.fillStyle = '#ef4444';
+                ctx.fillRect(headX - 2, headY, 6, 1);
+            }
+
+            ctx.restore();
+        }
+
+        /**
+         * ============================================================================
+         * 6. AUTENTICAÇÃO, SALAS E LOBBY (SUPORTE A 2V2)
+         * ============================================================================
+         */
+        let currentUser = null;
+        let currentRoomCode = null;
+        let currentRoomData = null;
+        let roomListenerRef = null;
+        let matchStateListenerRef = null;
+        let openRoomsListenerRef = null;
+        let fillWithBots = true;
+
+        const MAX_CAMPAIGN_PLAYERS = 2;
+        const MAX_2V2_PLAYERS = 4;
+        const MAX_COMBAT_PLAYERS = 10;
+        const MIN_COMBAT_FIGHTERS = 4;
+
+        const maxPlayersForMode = (mode) => {
+            if (mode === 'CAMPAIGN') return MAX_CAMPAIGN_PLAYERS;
+            if (mode === 'COMBAT_2V2') return MAX_2V2_PLAYERS;
+            return MAX_COMBAT_PLAYERS;
+        };
+
+        const teamForSlotInMode = (mode, slotIdx) => {
+            if (mode === 'CAMPAIGN') return 1;
+            if (mode === 'COMBAT_2V2') return slotIdx < 2 ? 1 : 2; // P1 e P2 = Time A (1), P3 e P4 = Time B (2)
+            return slotIdx + 1;
+        };
+
+        const screens = {
+            auth: document.getElementById('screen-auth'),
+            home: document.getElementById('screen-home'),
+            lobby: document.getElementById('screen-lobby'),
+            game: document.getElementById('screen-game')
+        };
+
+        async function tryLockLandscape(enable) {
+            try {
+                if (enable && screen.orientation && screen.orientation.lock) {
+                    await screen.orientation.lock('landscape');
+                } else if (!enable && screen.orientation && screen.orientation.unlock) {
+                    screen.orientation.unlock();
+                }
+            } catch (e) {}
+        }
+
+        function showScreen(name) {
+            Object.entries(screens).forEach(([k, el]) => {
+                if (k === name) {
+                    el.classList.remove('hidden');
+                    if (k === 'game') el.classList.add('flex');
+                } else {
+                    el.classList.add('hidden');
+                    if (k === 'game') el.classList.remove('flex');
+                }
+            });
+            document.body.classList.toggle('in-game', name === 'game');
+            tryLockLandscape(name === 'game');
+            if (name !== 'game') window.scrollTo(0, 0);
+        }
+
+        function completeUserLogin(uid, email, nickname) {
+            const cleanNick = (nickname || email?.split('@')[0] || 'PLAYER')
+                .toUpperCase()
+                .replace(/[^A-Z0-9_]/g, '')
+                .slice(0, 10) || 'PLAYER';
+
+            localStorage.setItem(`tbph_nick_${uid}`, cleanNick);
+            currentUser = { uid, email: email || '', nickname: cleanNick };
+            document.getElementById('home-nickname').value = cleanNick;
+
+            if (db && !isOfflineFallback) {
+                db.ref(`users/${uid}`).update({
+                    nickname: cleanNick,
+                    email: email || '',
+                    lastSeen: firebase.database.ServerValue.TIMESTAMP
+                }).catch(() => {});
+            }
+
+            showScreen('home');
+            subscribeOpenRooms();
+        }
+
+        if (auth) {
+            auth.onAuthStateChanged(async (user) => {
+                if (user) {
+                    let savedNick = localStorage.getItem(`tbph_nick_${user.uid}`) || user.displayName;
+                    if (!savedNick && db) {
+                        try {
+                            const snap = await db.ref(`users/${user.uid}/nickname`).once('value');
+                            if (snap.exists()) savedNick = snap.val();
+                        } catch (e) {}
+                    }
+                    completeUserLogin(user.uid, user.email, savedNick);
+                } else {
+                    const localSession = localStorage.getItem('tbph_local_session');
+                    if (localSession) {
+                        try {
+                            const parsed = JSON.parse(localSession);
+                            completeUserLogin(parsed.uid, parsed.email, parsed.nickname);
+                            return;
+                        } catch (e) {}
+                    }
+                    showScreen('auth');
+                }
+            });
+        }
+
+        document.getElementById('btn-quick-play').addEventListener('click', () => {
+            sfx.select();
+            const rawNick = document.getElementById('quick-nickname').value.trim() ||
+                            'PLAYER' + Math.floor(Math.random() * 90 + 10);
+            let saved = null;
+            try { saved = JSON.parse(localStorage.getItem('tbph_local_session')); } catch (e) {}
+            const uid = saved?.uid || ('hero_' + Math.random().toString(36).substring(2, 9));
+            localStorage.setItem('tbph_local_session', JSON.stringify({ uid, email: '', nickname: rawNick }));
+            completeUserLogin(uid, '', rawNick);
+        });
+
+        document.getElementById('home-nickname').addEventListener('change', (e) => {
+            if (!currentUser) return;
+            const clean = e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, '').slice(0, 10) || 'PLAYER';
+            currentUser.nickname = clean;
+            e.target.value = clean;
+            localStorage.setItem(`tbph_nick_${currentUser.uid}`, clean);
+            localStorage.setItem('tbph_local_session', JSON.stringify({ uid: currentUser.uid, email: '', nickname: clean }));
+        });
+
+        const localRoomsMemory = {};
+
+        function generateRoomCode() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            let code = '';
+            for (let i = 0; i < 4; i++) code += chars[Math.floor(Math.random() * chars.length)];
+            return code;
+        }
+
+        function subscribeOpenRooms() {
+            if (!db || isOfflineFallback) {
+                renderOpenRoomsList({});
+                return;
+            }
+            if (openRoomsListenerRef) openRoomsListenerRef.off();
+            openRoomsListenerRef = db.ref('rooms').limitToLast(15);
+            openRoomsListenerRef.on('value', (snap) => {
+                renderOpenRoomsList(snap.val() || {});
+            }, () => renderOpenRoomsList(localRoomsMemory));
+        }
+
+        function renderOpenRoomsList(roomsObj) {
+            const listEl = document.getElementById('open-rooms-list');
+            listEl.innerHTML = '';
+            const now = Date.now();
+            const entries = Object.entries(roomsObj).filter(([, r]) => {
+                if (!r || !r.players) return false;
+                if (r.updatedAt && now - r.updatedAt > 7200000) return false;
+                return true;
+            });
+
+            if (entries.length === 0) {
+                listEl.innerHTML = `<div class="text-[8px] text-slate-500 text-center py-8 leading-relaxed">NENHUMA SALA ABERTA AGORA.<br>CLIQUE EM "+ CRIAR SALA AGORA"!</div>`;
+                return;
+            }
+
+            entries.reverse().forEach(([code, r]) => {
+                const pCount = Object.keys(r.players || {}).length;
+                const isCampaignRoom = r.mode === 'CAMPAIGN';
+                const is2v2Room = r.mode === 'COMBAT_2V2';
+                const countLabel = isCampaignRoom
+                    ? `${pCount}/${MAX_CAMPAIGN_PLAYERS}`
+                    : (is2v2Room ? `${pCount}/4` : `${pCount}`);
+                const modeLabel = isCampaignRoom
+                    ? `🗺️ CAMPANHA NV.${r.campaignLevel || 1}`
+                    : (is2v2Room ? '🤝 COMBATE 2V2' : '⚔️ COMBATE');
+                const statusLabel = r.status === 'PLAYING' ? 'EM JOGO' : 'NO LOBBY';
+
+                const btn = document.createElement('button');
+                btn.className = 'retro-btn retro-btn-slate w-full p-2.5 flex items-center justify-between text-left';
+                btn.innerHTML = `
+                    <div>
+                        <span class="text-[10px] text-yellow-300 font-bold">#${code}</span>
+                        <span class="text-[8px] text-slate-300 ml-2">${modeLabel}</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-[7px] px-1.5 py-0.5 ${r.status === 'PLAYING' ? 'bg-amber-600' : 'bg-emerald-700'}">${statusLabel}</span>
+                        <span class="text-[8px] text-amber-300">${countLabel}</span>
+                    </div>
+                `;
+                btn.addEventListener('click', () => joinRoomByCode(code));
+                listEl.appendChild(btn);
+            });
+        }
+
+        async function createNewRoom() {
+            if (!currentUser) return;
+            sfx.select();
+            const code = generateRoomCode();
+            const initialRoom = {
+                code,
+                hostId: currentUser.uid,
+                mode: 'CAMPAIGN',
+                status: 'LOBBY',
+                campaignLevel: 1,
+                horseEnabled: true,
+                fillBots: true,
+                seed: Math.floor(Math.random() * 999999),
+                updatedAt: Date.now(),
+                players: {
+                    [currentUser.uid]: {
+                        uid: currentUser.uid,
+                        nickname: currentUser.nickname,
+                        slot: 0,
+                        wins: 0,
+                        joinedAt: Date.now()
+                    }
+                }
+            };
+
+            localRoomsMemory[code] = initialRoom;
+            if (db && !isOfflineFallback) {
+                try {
+                    await db.ref(`rooms/${code}`).set(initialRoom);
+                    db.ref(`rooms/${code}/players/${currentUser.uid}`).onDisconnect().remove();
+                } catch (e) {}
+            }
+            enterRoomLobby(code);
+        }
+
+        async function joinRoomByCode(rawCode) {
+            if (!currentUser) return;
+            const code = (rawCode || '').trim().toUpperCase();
+            const errEl = document.getElementById('home-error');
+            errEl.classList.add('hidden');
+
+            if (code.length !== 4) {
+                errEl.textContent = 'DIGITE UM CÓDIGO DE SALA DE 4 LETRAS!';
+                errEl.classList.remove('hidden');
+                return;
+            }
+
+            sfx.select();
+            let room = localRoomsMemory[code];
+            if (db && !isOfflineFallback) {
+                try {
+                    const snap = await db.ref(`rooms/${code}`).once('value');
+                    if (snap.exists()) room = snap.val();
+                } catch (e) {}
+            }
+
+            if (!room) {
+                errEl.textContent = `SALA #${code} NÃO ENCONTRADA!`;
+                errEl.classList.remove('hidden');
+                return;
+            }
+
+            const existingPlayers = room.players || {};
+            const maxPlayers = maxPlayersForMode(room.mode);
+            if (!existingPlayers[currentUser.uid] && Object.keys(existingPlayers).length >= maxPlayers) {
+                errEl.textContent = `A SALA #${code} JÁ ESTÁ CHEIA!`;
+                errEl.classList.remove('hidden');
+                return;
+            }
+
+            const usedSlots = new Set(Object.values(existingPlayers).map(p => p.slot));
+            let freeSlot = 0;
+            while (usedSlots.has(freeSlot) && freeSlot < MAX_COMBAT_PLAYERS) freeSlot++;
+
+            const myPlayerObj = existingPlayers[currentUser.uid] || {
+                uid: currentUser.uid,
+                nickname: currentUser.nickname,
+                slot: freeSlot,
+                wins: 0,
+                joinedAt: Date.now()
+            };
+            myPlayerObj.nickname = currentUser.nickname;
+
+            if (!room.players) room.players = {};
+            room.players[currentUser.uid] = myPlayerObj;
+            localRoomsMemory[code] = room;
+
+            if (db && !isOfflineFallback) {
+                try {
+                    await db.ref(`rooms/${code}/players/${currentUser.uid}`).set(myPlayerObj);
+                    await db.ref(`rooms/${code}/updatedAt`).set(Date.now());
+                    db.ref(`rooms/${code}/players/${currentUser.uid}`).onDisconnect().remove();
+                } catch (e) {}
+            }
+
+            enterRoomLobby(code);
+        }
+
+        function enterRoomLobby(code) {
+            currentRoomCode = code;
+            document.getElementById('lobby-room-code').textContent = code;
+            showScreen('lobby');
+
+            if (roomListenerRef) roomListenerRef.off();
+            if (db && !isOfflineFallback) {
+                roomListenerRef = db.ref(`rooms/${code}`);
+                roomListenerRef.on('value', (snap) => {
+                    const data = snap.val();
+                    if (!data) {
+                        leaveCurrentRoom();
+                        return;
+                    }
+                    handleRoomSnapshotUpdate(data);
+                });
+            } else {
+                handleRoomSnapshotUpdate(localRoomsMemory[code]);
+            }
+        }
+
+        function leaveCurrentRoom() {
+            stopMatchSyncListeners();
+            if (roomListenerRef) {
+                roomListenerRef.off();
+                roomListenerRef = null;
+            }
+            if (currentRoomCode && currentUser && db && !isOfflineFallback) {
+                db.ref(`rooms/${currentRoomCode}/players/${currentUser.uid}`).remove().catch(() => {});
+            }
+            currentRoomCode = null;
+            currentRoomData = null;
+            gameRunning = false;
+            showScreen('home');
+        }
+
+        function handleRoomSnapshotUpdate(data) {
+            currentRoomData = data;
+            if (!['CAMPAIGN', 'COMBAT', 'COMBAT_2V2'].includes(data.mode)) data.mode = 'CAMPAIGN';
+
+            const playersMap = data.players || {};
+            const pList = Object.values(playersMap).sort((a, b) => (a.slot ?? 0) - (b.slot ?? 0) || (a.joinedAt ?? 0) - (b.joinedAt ?? 0));
+
+            if (!playersMap[data.hostId] && pList.length > 0) {
+                data.hostId = pList[0].uid;
+                if (data.hostId === currentUser.uid && db && !isOfflineFallback) {
+                    db.ref(`rooms/${currentRoomCode}/hostId`).set(currentUser.uid);
+                }
+            }
+
+            const isHost = data.hostId === currentUser.uid;
+            fillWithBots = data.fillBots !== false;
+            const horseOnPvP = data.horseEnabled !== false;
+
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                const m = btn.dataset.mode;
+                const active = data.mode === m;
+                btn.className = `mode-btn retro-btn py-2.5 px-2 text-[8px] leading-relaxed ${
+                    active ? 'retro-btn-amber' : 'retro-btn-slate'
+                }`;
+                btn.disabled = !isHost;
+            });
+
+            const campStageIdx = Math.min(19, Math.max(0, (data.campaignLevel || 1) - 1));
+            const stInfo = CAMPAIGN_STAGES[campStageIdx];
+            const pvpHorsePicker = document.getElementById('pvp-horse-picker');
+
+            if (data.mode === 'CAMPAIGN') {
+                pvpHorsePicker.classList.add('hidden');
+                pvpHorsePicker.classList.remove('flex');
+                document.getElementById('lobby-mode-desc').textContent =
+                    stInfo.bossName ? `🔥 CHEFE DA FASE: ${stInfo.bossName}` : 'DERROTE OS INIMIGOS E ENTRE NO PORTAL!';
+            } else {
+                pvpHorsePicker.classList.remove('hidden');
+                pvpHorsePicker.classList.add('flex');
+
+                const horseBtn = document.getElementById('btn-toggle-pvp-horse');
+                horseBtn.textContent = `🐴 CAVALO ESCONDIDO NO BLOCO: ${horseOnPvP ? 'LIGADO' : 'DESLIGADO'}`;
+                horseBtn.className = `retro-btn px-2.5 py-1 text-[7px] ${horseOnPvP ? 'retro-btn-amber' : 'retro-btn-slate'}`;
+                horseBtn.disabled = !isHost;
+
+                if (data.mode === 'COMBAT_2V2') {
+                    document.getElementById('lobby-mode-desc').textContent =
+                        'DUPLAS: TIME A (JOGADOR 1 E 2) CONTRA TIME B (JOGADOR 3 E 4)!';
+                } else {
+                    document.getElementById('lobby-mode-desc').textContent =
+                        horseOnPvP
+                            ? '1 CAVALO ESTÁ ESCONDIDO DENTRO DE UM BLOCO!'
+                            : 'COMBATE PURO SEM CAVALO NA ARENA!';
+                }
+            }
+
+            const botBtn = document.getElementById('btn-toggle-bots');
+            botBtn.textContent = `BOTS NAS VAGAS: ${fillWithBots ? 'ON' : 'OFF'}`;
+            botBtn.disabled = !isHost;
+
+            const isCampaignMode = data.mode === 'CAMPAIGN';
+            const is2v2Mode = data.mode === 'COMBAT_2V2';
+            const maxSlots = maxPlayersForMode(data.mode);
+            const slotsGrid = document.getElementById('lobby-slots-grid');
+            slotsGrid.innerHTML = '';
+
+            const cardsToShow = (isCampaignMode || is2v2Mode)
+                ? 4
+                : Math.max(MIN_COMBAT_FIGHTERS, Math.min(pList.length, MAX_COMBAT_PLAYERS));
+
+            for (let s = 0; s < cardsToShow; s++) {
+                const slotPlayer = pList[s];
+                const isLocked = isCampaignMode && s >= maxSlots;
+                const teamTag = is2v2Mode
+                    ? (s < 2
+                        ? '<span class="text-[6px] bg-sky-600 text-white px-1 py-0.5">TIME A</span>'
+                        : '<span class="text-[6px] bg-orange-600 text-white px-1 py-0.5">TIME B</span>')
+                    : '';
+
+                const borderColor = isLocked
+                    ? 'bg-slate-950/50 border-slate-800 opacity-40'
+                    : is2v2Mode
+                        ? (s < 2 ? 'bg-slate-900 border-sky-500' : 'bg-slate-900 border-orange-500')
+                        : (slotPlayer ? 'bg-slate-900 border-emerald-500' : 'bg-slate-950 border-slate-700');
+
+                const card = document.createElement('div');
+                card.className = `p-2.5 border-2 flex flex-col justify-between min-h-[78px] ${borderColor}`;
+
+                if (isLocked) {
+                    card.innerHTML = `<span class="text-[7px] text-slate-500">JOGADOR ${s + 1}</span><div class="text-[7px] text-slate-600 my-auto text-center">CAMPANHA: MÁX 2 PLAYERS</div>`;
+                } else if (slotPlayer) {
+                    const skin = skinForSlot(s);
+                    const isMe = slotPlayer.uid === currentUser.uid;
+                    card.innerHTML = `
+                        <div class="flex items-center justify-between gap-1">
+                            <span class="text-[7px] text-slate-400">JOGADOR ${s + 1}</span>
+                            ${teamTag}
+                            <span class="text-[7px] text-yellow-300">★${slotPlayer.wins || 0}</span>
+                        </div>
+                        <div class="my-1 flex items-center gap-2">
+                            <canvas class="slot-sprite pixel-canvas w-8 h-8 shrink-0" width="32" height="32"></canvas>
+                            <div class="min-w-0">
+                                <div class="text-[9px] ${isMe ? 'text-yellow-300' : 'text-white'} truncate">
+                                    ${slotPlayer.nickname} ${slotPlayer.uid === data.hostId ? '👑' : ''}
+                                </div>
+                                <div class="text-[7px] mt-0.5" style="color:${skin.light}">${skin.name}</div>
+                            </div>
+                        </div>
+                    `;
+                    const sc = card.querySelector('.slot-sprite');
+                    if (sc) {
+                        const sctx = sc.getContext('2d');
+                        sctx.imageSmoothingEnabled = false;
+                        drawBomberSprite(sctx, 16, 23, skin, 'DOWN', 0, { scale: 0.9 });
+                    }
+                } else {
+                    card.innerHTML = `
+                        <div class="flex items-center justify-between">
+                            <span class="text-[7px] text-slate-400">JOGADOR ${s + 1}</span>
+                            ${teamTag}
+                        </div>
+                        <div class="text-[8px] ${fillWithBots ? 'text-sky-400' : 'text-slate-500'} my-auto text-center">
+                            ${fillWithBots ? '🤖 BOT CPU' : 'AGUARDANDO AMIGO...'}
+                        </div>
+                    `;
+                }
+                slotsGrid.appendChild(card);
+            }
+
+            const startBtn = document.getElementById('btn-start-match');
+            const statusMsg = document.getElementById('lobby-status-msg');
+            if (isHost) {
+                startBtn.classList.remove('hidden');
+                statusMsg.textContent = 'VOCÊ É O LÍDER! ESCOLHA O MODO E INICIE A PARTIDA.';
+            } else {
+                startBtn.classList.add('hidden');
+                statusMsg.textContent = 'AGUARDANDO O LÍDER DA SALA INICIAR A PARTIDA...';
+            }
+
+            if (data.status === 'PLAYING' && !gameRunning) {
+                startMatchFromRoom(data);
+            } else if (data.status === 'LOBBY' && gameRunning) {
+                returnToLobbyScreen();
+            }
+        }
+
+        document.getElementById('btn-create-room').addEventListener('click', createNewRoom);
+        document.getElementById('btn-join-code').addEventListener('click', () => {
+            joinRoomByCode(document.getElementById('input-room-code').value);
+        });
+        document.getElementById('btn-leave-room').addEventListener('click', () => {
+            sfx.blip();
+            leaveCurrentRoom();
+        });
+        document.getElementById('btn-copy-code').addEventListener('click', () => {
+            if (!currentRoomCode) return;
+            sfx.select();
+            const temp = document.createElement('input');
+            temp.value = currentRoomCode;
+            document.body.appendChild(temp);
+            temp.select();
+            document.execCommand('copy');
+            document.body.removeChild(temp);
+            const btn = document.getElementById('btn-copy-code');
+            btn.textContent = 'COPIADO!';
+            setTimeout(() => { btn.textContent = 'COPIAR'; }, 1400);
+        });
+
+        document.querySelectorAll('.mode-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (!currentRoomData || currentRoomData.hostId !== currentUser.uid) return;
+                sfx.blip();
+                const newMode = btn.dataset.mode;
+                currentRoomData.mode = newMode;
+                if (db && !isOfflineFallback) {
+                    db.ref(`rooms/${currentRoomCode}`).update({ mode: newMode });
+                } else {
+                    handleRoomSnapshotUpdate(currentRoomData);
+                }
+            });
+        });
+
+        document.getElementById('btn-toggle-pvp-horse').addEventListener('click', () => {
+            if (!currentRoomData || currentRoomData.hostId !== currentUser.uid) return;
+            sfx.blip();
+            const nextState = currentRoomData.horseEnabled === false;
+            currentRoomData.horseEnabled = nextState;
+            if (db && !isOfflineFallback) {
+                db.ref(`rooms/${currentRoomCode}/horseEnabled`).set(nextState);
+            } else {
+                handleRoomSnapshotUpdate(currentRoomData);
+            }
+        });
+
+        document.getElementById('btn-toggle-bots').addEventListener('click', () => {
+            if (!currentRoomData || currentRoomData.hostId !== currentUser.uid) return;
+            sfx.blip();
+            fillWithBots = !fillWithBots;
+            currentRoomData.fillBots = fillWithBots;
+            if (db && !isOfflineFallback) {
+                db.ref(`rooms/${currentRoomCode}/fillBots`).set(fillWithBots);
+            } else {
+                handleRoomSnapshotUpdate(currentRoomData);
+            }
+        });
+
+        document.getElementById('btn-start-match').addEventListener('click', () => {
+            if (!currentRoomData || currentRoomData.hostId !== currentUser.uid) return;
+            sfx.select();
+            const newSeed = Math.floor(Math.random() * 899999 + 100000);
+            currentRoomData.seed = newSeed;
+            currentRoomData.status = 'PLAYING';
+
+            if (db && !isOfflineFallback) {
+                db.ref(`rooms/${currentRoomCode}/match`).remove();
+                db.ref(`rooms/${currentRoomCode}`).update({
+                    seed: newSeed,
+                    status: 'PLAYING',
+                    updatedAt: Date.now()
+                });
+            } else {
+                handleRoomSnapshotUpdate(currentRoomData);
+            }
+        });
+
+        /**
+         * ============================================================================
+         * 7. ENGINE DA PARTIDA: ZERO DIAGONAL + SUPORTE A DUPLAS 2V2
+         * ============================================================================
+         */
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d', { alpha: false });
+        ctx.imageSmoothingEnabled = false;
+
+        const COLS = 21;
+        const ROWS = 21;
+        const TILE_SIZE = 24;
+        const HUD_HEIGHT = 36;
+        const TILE = { EMPTY: 0, WALL: 1, BRICK: 2 };
+        const DIRS = [
+            { name: 'UP', dr: -1, dc: 0 },
+            { name: 'DOWN', dr: 1, dc: 0 },
+            { name: 'LEFT', dr: 0, dc: -1 },
+            { name: 'RIGHT', dr: 0, dc: 1 }
+        ];
+
+        let gameRunning = false;
+        let matchFinished = false;
+        let gameClock = 0;
+        let matchTimer = 180;
+        let screenShake = 0;
+        let currentStageInfo = CAMPAIGN_STAGES[0];
+        let currentBiome = BIOMES[0];
+        let floatingNotice = null;
+
+        let grid = [];
+        let hiddenItems = [];
+        let hiddenHorsePos = null;
+        let horseEntity = null;
+        let items = [];
+        let bombs = [];
+        let explosions = [];
+        let fighters = [];
+        let monsters = [];
+        let portalTile = null;
+        let localFighter = null;
+        let lastNetSync = 0;
+
+        function createSeededRandom(seed) {
+            let s = seed % 2147483647;
+            if (s <= 0) s += 2147483646;
+            return function() {
+                s = (s * 16807) % 2147483647;
+                return (s - 1) / 2147483646;
+            };
+        }
+
+        const SPAWN_POINTS = [
+            { r: 1, c: 1 },
+            { r: ROWS - 2, c: COLS - 2 },
+            { r: 1, c: COLS - 2 },
+            { r: ROWS - 2, c: 1 },
+            { r: 1, c: 10 },
+            { r: ROWS - 2, c: 10 },
+            { r: 10, c: 1 },
+            { r: 10, c: COLS - 2 },
+            { r: 7, c: 7 },
+            { r: 13, c: 13 }
+        ];
+
+        const isOpenPattern = (r, c) =>
+            r >= 1 && r <= ROWS - 2 && c >= 1 && c <= COLS - 2 && !(r % 2 === 0 && c % 2 === 0);
+
+        function buildSafeSet(mode) {
+            const set = new Set();
+            if (mode === 'CAMPAIGN') {
+                for (let i = 0; i < 4; i++) {
+                    const sp = SPAWN_POINTS[i];
+                    set.add(`${sp.r},${sp.c}`);
+                    for (const d of DIRS) {
+                        if (isOpenPattern(sp.r + d.dr, sp.c + d.dc)) set.add(`${sp.r + d.dr},${sp.c + d.dc}`);
+                    }
+                }
+                return set;
+            }
+            for (const sp of SPAWN_POINTS) {
+                for (let dr = -2; dr <= 2; dr++) {
+                    for (let dc = -2; dc <= 2; dc++) {
+                        if (Math.abs(dr) + Math.abs(dc) > 2) continue;
+                        if (isOpenPattern(sp.r + dr, sp.c + dc)) set.add(`${sp.r + dr},${sp.c + dc}`);
+                    }
+                }
+            }
+            return set;
+        }
+
+        function startMatchFromRoom(roomData) {
+            gameRunning = true;
+            matchFinished = false;
+            document.getElementById('match-over-overlay').classList.add('hidden');
+            showScreen('game');
+            sfx.select();
+
+            const rand = createSeededRandom(roomData.seed || 12345);
+            const mode = roomData.mode || 'CAMPAIGN';
+            const campIdx = Math.min(19, Math.max(0, (roomData.campaignLevel || 1) - 1));
+            currentStageInfo = CAMPAIGN_STAGES[campIdx];
+            currentBiome = mode === 'CAMPAIGN'
+                ? BIOMES[currentStageInfo.biome]
+                : BIOMES[(roomData.seed || 0) % BIOMES.length];
+
+            grid = [];
+            hiddenItems = [];
+            hiddenHorsePos = null;
+            horseEntity = null;
+            items = [];
+            bombs = [];
+            explosions = [];
+            fighters = [];
+            monsters = [];
+            portalTile = null;
+            floatingNotice = null;
+            matchTimer = mode === 'CAMPAIGN' ? 210 : 160;
+
+            const safeSet = buildSafeSet(mode);
+            const brickCandidates = [];
+
+            for (let r = 0; r < ROWS; r++) {
+                grid[r] = [];
+                hiddenItems[r] = [];
+                for (let c = 0; c < COLS; c++) {
+                    hiddenItems[r][c] = null;
+                    if (r === 0 || r === ROWS - 1 || c === 0 || c === COLS - 1 || (r % 2 === 0 && c % 2 === 0)) {
+                        grid[r][c] = TILE.WALL;
+                    } else if (!safeSet.has(`${r},${c}`) && rand() < (mode === 'CAMPAIGN' ? 0.48 : 0.62)) {
+                        grid[r][c] = TILE.BRICK;
+                        brickCandidates.push({ r, c });
+                        if (rand() < 0.28) {
+                            const rv = rand();
+                            hiddenItems[r][c] = rv < 0.38 ? 'BOMB' : (rv < 0.76 ? 'FIRE' : 'SPEED');
+                        }
+                    } else {
+                        grid[r][c] = TILE.EMPTY;
+                    }
+                }
+            }
+
+            const shouldSpawnHiddenHorse = mode === 'CAMPAIGN'
+                ? !!currentStageInfo.hasHorse
+                : (roomData.horseEnabled !== false);
+
+            if (shouldSpawnHiddenHorse && brickCandidates.length > 2) {
+                const pickIdx = Math.floor(rand() * brickCandidates.length);
+                const chosenBrick = brickCandidates.splice(pickIdx, 1)[0];
+                hiddenHorsePos = { r: chosenBrick.r, c: chosenBrick.c };
+                hiddenItems[chosenBrick.r][chosenBrick.c] = null;
+            }
+
+            if (mode === 'CAMPAIGN') {
+                const portalPos = brickCandidates.length > 0
+                    ? brickCandidates[Math.floor(rand() * brickCandidates.length)]
+                    : { r: 10, c: 10 };
+                portalTile = { r: portalPos.r, c: portalPos.c, open: false };
+
+                const emptyCells = [];
+                for (let r = 1; r < ROWS - 1; r++) {
+                    for (let c = 1; c < COLS - 1; c++) {
+                        if (grid[r][c] === TILE.EMPTY && (r > 4 || c > 4)) {
+                            emptyCells.push({ r, c });
+                        }
+                    }
+                }
+
+                let mId = 1;
+                currentStageInfo.monsters.forEach(group => {
+                    for (let i = 0; i < group.count; i++) {
+                        const cell = emptyCells.length > 0
+                            ? emptyCells[Math.floor(rand() * emptyCells.length)]
+                            : { r: 10, c: 11 };
+                        const isBoss = group.type.startsWith('BOSS');
+                        monsters.push({
+                            id: 'm_' + (mId++),
+                            type: group.type,
+                            isBoss,
+                            x: (cell.c + 0.5) * TILE_SIZE,
+                            y: (cell.r + 0.5) * TILE_SIZE,
+                            dir: DIRS[Math.floor(rand() * 4)],
+                            hp: isBoss ? 4 : (group.type === 'GOLEM' || group.type === 'KNIGHT' ? 2 : 1),
+                            maxHp: isBoss ? 4 : (group.type === 'GOLEM' || group.type === 'KNIGHT' ? 2 : 1),
+                            invulnTimer: 0,
+                            alive: true,
+                            speed: group.type === 'SLIME' ? 34 : (group.type === 'BAT' ? 54 : (group.type === 'KNIGHT' ? 50 : 44))
+                        });
+                    }
+                });
+            }
+
+            const playersList = Object.values(roomData.players || {})
+                .sort((a, b) => (a.slot ?? 0) - (b.slot ?? 0) || (a.joinedAt ?? 0) - (b.joinedAt ?? 0))
+                .slice(0, maxPlayersForMode(mode));
+
+            playersList.forEach((pData, idx) => {
+                const spawn = SPAWN_POINTS[idx];
+                const f = createFighter({
+                    id: pData.uid,
+                    nickname: pData.nickname,
+                    skin: skinForSlot(idx),
+                    slot: idx,
+                    team: teamForSlotInMode(mode, idx),
+                    isAI: false,
+                    isRemote: pData.uid !== currentUser.uid,
+                    spawnR: spawn.r,
+                    spawnC: spawn.c
+                });
+                fighters.push(f);
+                if (pData.uid === currentUser.uid) localFighter = f;
+            });
+
+            if (roomData.fillBots !== false) {
+                const targetCount = mode === 'CAMPAIGN'
+                    ? (playersList.length === 1 ? MAX_CAMPAIGN_PLAYERS : playersList.length)
+                    : mode === 'COMBAT_2V2'
+                        ? MAX_2V2_PLAYERS
+                        : Math.min(MAX_COMBAT_PLAYERS, Math.max(MIN_COMBAT_FIGHTERS, playersList.length));
+
+                for (let idx = playersList.length; idx < targetCount; idx++) {
+                    const spawn = SPAWN_POINTS[idx];
+                    fighters.push(createFighter({
+                        id: 'bot_' + idx,
+                        nickname: 'CPU ' + (idx + 1),
+                        skin: skinForSlot(idx),
+                        slot: idx,
+                        team: teamForSlotInMode(mode, idx),
+                        isAI: true,
+                        isRemote: false,
+                        spawnR: spawn.r,
+                        spawnC: spawn.c
+                    }));
+                }
+            }
+
+            setupRealtimeMatchListeners();
+
+            if (!window.matchMedia('(pointer: coarse)').matches) {
+                floatingNotice = { text: 'WASD MOVE • ESPAÇO BOMBA • ESC SALA', timer: 4.5 };
+            }
+        }
+
+        function createFighter(cfg) {
+            return {
+                id: cfg.id,
+                nickname: cfg.nickname,
+                skin: cfg.skin,
+                slot: cfg.slot,
+                team: cfg.team,
+                isAI: cfg.isAI,
+                isRemote: cfg.isRemote,
+                x: (cfg.spawnC + 0.5) * TILE_SIZE,
+                y: (cfg.spawnR + 0.5) * TILE_SIZE,
+                dir: 'DOWN',
+                isMoving: false,
+                animTime: 0,
+                alive: true,
+                mounted: false,
+                invulnTimer: 0,
+                maxBombs: 1,
+                activeBombs: 0,
+                fireRange: 2,
+                speedLevel: 1,
+                ignoreBombs: new Set(),
+                aiTarget: null,
+                aiThink: 0,
+                aiBombCd: 0
+            };
+        }
+
+        function applyHitToFighter(f) {
+            if (!f || !f.alive || f.invulnTimer > 0) return;
+            if (f.mounted) {
+                f.mounted = false;
+                f.invulnTimer = 1.3;
+                sfx.horseNeigh();
+                floatingNotice = { text: `${f.nickname} PERDEU O CAVALO!`, timer: 1.6 };
+            } else {
+                f.alive = false;
+                checkMatchOutcome();
+            }
+        }
+
+        function setupRealtimeMatchListeners() {
+            stopMatchSyncListeners();
+            if (!db || isOfflineFallback || !currentRoomCode) return;
+
+            const matchRef = db.ref(`rooms/${currentRoomCode}/match`);
+            matchStateListenerRef = matchRef;
+
+            const handlePosSnap = (snap) => {
+                const d = snap.val();
+                if (!d || d.uid === currentUser.uid) return;
+                const f = fighters.find(x => x.id === d.uid);
+                if (f) {
+                    f.x = d.x;
+                    f.y = d.y;
+                    f.dir = d.dir || f.dir;
+                    f.isMoving = !!d.isMoving;
+                    f.alive = d.alive !== false;
+                    f.mounted = !!d.mounted;
+                    if (f.isMoving) f.animTime += 0.35;
+                }
+            };
+
+            matchRef.child('positions').on('child_added', handlePosSnap);
+            matchRef.child('positions').on('child_changed', handlePosSnap);
+
+            matchRef.child('events').on('child_added', (snap) => {
+                const ev = snap.val();
+                if (!ev || ev.sender === currentUser.uid) return;
+                const owner = fighters.find(x => x.id === ev.ownerId);
+                if (ev.type === 'BOMB') {
+                    spawnBombAt(ev.r, ev.c, ev.range, owner, false);
+                } else if (ev.type === 'MATCH_OVER' && !matchFinished) {
+                    showMatchOverModal(ev.badge, ev.title, ev.subtitle, ev.nextCampaignLevel);
+                }
+            });
+        }
+
+        function stopMatchSyncListeners() {
+            if (matchStateListenerRef) {
+                matchStateListenerRef.child('positions').off();
+                matchStateListenerRef.child('events').off();
+                matchStateListenerRef = null;
+            }
+        }
+
+        function broadcastMatchEvent(payload) {
+            if (!db || isOfflineFallback || !currentRoomCode || !currentUser) return;
+            db.ref(`rooms/${currentRoomCode}/match/events`).push({
+                ...payload,
+                sender: currentUser.uid,
+                ts: Date.now()
+            }).catch(() => {});
+        }
+
+        function isTileSolidForFighter(r, c, f) {
+            if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return true;
+            if (grid[r][c] !== TILE.EMPTY) return true;
+            const bomb = bombs.find(b => b.r === r && b.c === c);
+            if (bomb) {
+                if (f && f.ignoreBombs.has(bomb)) return false;
+                return true;
+            }
+            return false;
+        }
+
+        // MOVIMENTAÇÃO 100% ORTOGONAL (ZERO DIAGONAL)
+        function moveFighter(f, rawDx, rawDy, dt) {
+            if (!f.alive) return;
+
+            if (rawDx === 0 && rawDy === 0) {
+                f.isMoving = false;
+                return;
+            }
+
+            let dx = 0;
+            let dy = 0;
+            if (Math.abs(rawDx) > Math.abs(rawDy)) {
+                dx = Math.sign(rawDx);
+                dy = 0;
+            } else {
+                dx = 0;
+                dy = Math.sign(rawDy);
+            }
+
+            f.isMoving = true;
+            f.animTime += dt * 12;
+
+            if (dx !== 0) f.dir = dx > 0 ? 'RIGHT' : 'LEFT';
+            else f.dir = dy > 0 ? 'DOWN' : 'UP';
+
+            let speed = 82 + (f.speedLevel - 1) * 13;
+            if (f.mounted) speed *= 1.18;
+
+            const rad = 8.0;
+            const snapSpeed = speed * 1.35;
+
+            if (dx !== 0) {
+                const curR = Math.floor(f.y / TILE_SIZE);
+                const centerY = (curR + 0.5) * TILE_SIZE;
+                const nx = f.x + dx * speed * dt;
+                const checkC = Math.floor((nx + dx * rad) / TILE_SIZE);
+                const topR = Math.floor((f.y - rad + 1.5) / TILE_SIZE);
+                const botR = Math.floor((f.y + rad - 1.5) / TILE_SIZE);
+
+                const topHit = isTileSolidForFighter(topR, checkC, f);
+                const botHit = isTileSolidForFighter(botR, checkC, f);
+
+                if (!topHit && !botHit) {
+                    f.x = nx;
+                    const diffY = centerY - f.y;
+                    if (Math.abs(diffY) > 0.2) {
+                        f.y += Math.sign(diffY) * Math.min(Math.abs(diffY), snapSpeed * dt);
+                    } else {
+                        f.y = centerY;
+                    }
+                } else {
+                    if (!isTileSolidForFighter(curR, checkC, f)) {
+                        const diffY = centerY - f.y;
+                        f.y += Math.sign(diffY) * Math.min(Math.abs(diffY), snapSpeed * dt);
+                    }
+                    if (dx > 0) f.x = Math.min(f.x, checkC * TILE_SIZE - rad - 0.1);
+                    else f.x = Math.max(f.x, (checkC + 1) * TILE_SIZE + rad + 0.1);
+                }
+            } else if (dy !== 0) {
+                const curC = Math.floor(f.x / TILE_SIZE);
+                const centerX = (curC + 0.5) * TILE_SIZE;
+                const ny = f.y + dy * speed * dt;
+                const checkR = Math.floor((ny + dy * rad) / TILE_SIZE);
+                const leftC = Math.floor((f.x - rad + 1.5) / TILE_SIZE);
+                const rightC = Math.floor((f.x + rad - 1.5) / TILE_SIZE);
+
+                const leftHit = isTileSolidForFighter(checkR, leftC, f);
+                const rightHit = isTileSolidForFighter(checkR, rightC, f);
+
+                if (!leftHit && !rightHit) {
+                    f.y = ny;
+                    const diffX = centerX - f.x;
+                    if (Math.abs(diffX) > 0.2) {
+                        f.x += Math.sign(diffX) * Math.min(Math.abs(diffX), snapSpeed * dt);
+                    } else {
+                        f.x = centerX;
+                    }
+                } else {
+                    if (!isTileSolidForFighter(checkR, curC, f)) {
+                        const diffX = centerX - f.x;
+                        f.x += Math.sign(diffX) * Math.min(Math.abs(diffX), snapSpeed * dt);
+                    }
+                    if (dy > 0) f.y = Math.min(f.y, checkR * TILE_SIZE - rad - 0.1);
+                    else f.y = Math.max(f.y, (checkR + 1) * TILE_SIZE + rad + 0.1);
+                }
+            }
+
+            for (const b of f.ignoreBombs) {
+                if (
+                    f.x + rad <= b.c * TILE_SIZE ||
+                    f.x - rad >= (b.c + 1) * TILE_SIZE ||
+                    f.y + rad <= b.r * TILE_SIZE ||
+                    f.y - rad >= (b.r + 1) * TILE_SIZE
+                ) {
+                    f.ignoreBombs.delete(b);
+                }
+            }
+
+            const r = Math.floor(f.y / TILE_SIZE);
+            const c = Math.floor(f.x / TILE_SIZE);
+
+            if (horseEntity && !horseEntity.collected && !f.mounted && r === horseEntity.r && c === horseEntity.c) {
+                horseEntity.collected = true;
+                f.mounted = true;
+                sfx.horseNeigh();
+                floatingNotice = { text: `🐴 ${f.nickname} MONTOU NO CAVALO! (+1 VIDA)`, timer: 2.0 };
+            }
+
+            for (let i = items.length - 1; i >= 0; i--) {
+                if (items[i].r === r && items[i].c === c) {
+                    const it = items[i];
+                    if (it.type === 'BOMB') f.maxBombs = Math.min(6, f.maxBombs + 1);
+                    if (it.type === 'FIRE') f.fireRange = Math.min(6, f.fireRange + 1);
+                    if (it.type === 'SPEED') f.speedLevel = Math.min(4, f.speedLevel + 1);
+                    sfx.powerup();
+                    items.splice(i, 1);
+                }
+            }
+
+            if (portalTile && portalTile.open && r === portalTile.r && c === portalTile.c && !matchFinished) {
+                advanceOrBeatCampaign();
+            }
+        }
+
+        function triggerPlantBomb(f) {
+            if (!f || !f.alive || f.activeBombs >= f.maxBombs) return null;
+            const r = Math.floor(f.y / TILE_SIZE);
+            const c = Math.floor(f.x / TILE_SIZE);
+            return spawnBombAt(r, c, f.fireRange, f, true);
+        }
+
+        function spawnBombAt(r, c, range, owner, broadcast = false) {
+            if (grid[r]?.[c] !== TILE.EMPTY) return null;
+            if (bombs.some(b => b.r === r && b.c === c)) return null;
+
+            const bomb = {
+                r,
+                c,
+                range: range || 2,
+                owner,
+                timer: 2.6
+            };
+
+            if (owner) owner.activeBombs++;
+            fighters.forEach(p => {
+                if (!p.alive) return;
+                const pr = Math.floor(p.y / TILE_SIZE);
+                const pc = Math.floor(p.x / TILE_SIZE);
+                if (pr === r && pc === c) p.ignoreBombs.add(bomb);
+            });
+
+            bombs.push(bomb);
+            sfx.bomb();
+
+            if (broadcast && owner) {
+                broadcastMatchEvent({ type: 'BOMB', r, c, range: bomb.range, ownerId: owner.id });
+            }
+            return bomb;
+        }
+
+        function explodeBomb(bomb) {
+            const idx = bombs.indexOf(bomb);
+            if (idx === -1) return;
+            bombs.splice(idx, 1);
+            if (bomb.owner) bomb.owner.activeBombs = Math.max(0, bomb.owner.activeBombs - 1);
+            fighters.forEach(p => p.ignoreBombs.delete(bomb));
+
+            sfx.explosion();
+            screenShake = 4;
+
+            explosions.push({ r: bomb.r, c: bomb.c, timer: 0.42 });
+            const chain = [];
+
+            for (const d of DIRS) {
+                for (let s = 1; s <= bomb.range; s++) {
+                    const nr = bomb.r + d.dr * s;
+                    const nc = bomb.c + d.dc * s;
+                    if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS) break;
+                    if (grid[nr][nc] === TILE.WALL) break;
+
+                    if (grid[nr][nc] === TILE.BRICK) {
+                        grid[nr][nc] = TILE.EMPTY;
+
+                        if (hiddenHorsePos && hiddenHorsePos.r === nr && hiddenHorsePos.c === nc) {
+                            horseEntity = { r: nr, c: nc, collected: false };
+                            hiddenHorsePos = null;
+                            sfx.horseNeigh();
+                            floatingNotice = { text: '🐴 UM CAVALINHO APARECEU NO MAPA!', timer: 2.2 };
+                        } else if (hiddenItems[nr][nc]) {
+                            items.push({ r: nr, c: nc, type: hiddenItems[nr][nc] });
+                            hiddenItems[nr][nc] = null;
+                        }
+
+                        explosions.push({ r: nr, c: nc, timer: 0.42 });
+                        break;
+                    }
+
+                    const otherBomb = bombs.find(ob => ob.r === nr && ob.c === nc);
+                    if (otherBomb) chain.push(otherBomb);
+
+                    explosions.push({ r: nr, c: nc, timer: 0.42 });
+                }
+            }
+
+            chain.forEach(cb => {
+                if (bombs.includes(cb)) cb.timer = Math.min(cb.timer, 0.04);
+            });
+        }
+
+        function updateBotAI(bot, dt) {
+            if (!bot.alive) return;
+            bot.aiThink -= dt;
+            bot.aiBombCd = Math.max(0, bot.aiBombCd - dt);
+
+            const r = Math.floor(bot.y / TILE_SIZE);
+            const c = Math.floor(bot.x / TILE_SIZE);
+
+            const inDanger = (tr, tc) => bombs.some(b =>
+                (b.r === tr && Math.abs(b.c - tc) <= b.range) ||
+                (b.c === tc && Math.abs(b.r - tr) <= b.range)
+            );
+
+            if (inDanger(r, c)) {
+                if (!bot.aiTarget || inDanger(bot.aiTarget.r, bot.aiTarget.c)) {
+                    for (const d of DIRS) {
+                        const nr = r + d.dr;
+                        const nc = c + d.dc;
+                        if (!isTileSolidForFighter(nr, nc, bot)) {
+                            bot.aiTarget = { r: nr, c: nc };
+                            if (!inDanger(nr, nc)) break;
+                        }
+                    }
+                }
+            } else if (bot.aiThink <= 0) {
+                bot.aiThink = 0.32;
+                const nearBrick = DIRS.some(d => grid[r + d.dr]?.[c + d.dc] === TILE.BRICK);
+                const nearFoe = fighters.some(f => f !== bot && f.alive && f.team !== bot.team &&
+                    Math.hypot(f.x - bot.x, f.y - bot.y) < TILE_SIZE * 2.5
+                ) || monsters.some(m => m.alive && Math.hypot(m.x - bot.x, m.y - bot.y) < TILE_SIZE * 2.5);
+
+                if ((nearBrick || nearFoe) && bot.aiBombCd <= 0 && bot.activeBombs < bot.maxBombs) {
+                    const freeDirs = DIRS.filter(d => !isTileSolidForFighter(r + d.dr, c + d.dc, bot));
+                    if (freeDirs.length >= 2) {
+                        triggerPlantBomb(bot);
+                        bot.aiBombCd = 2.2;
+                        const esc = freeDirs[0];
+                        bot.aiTarget = { r: r + esc.dr, c: c + esc.dc };
+                    }
+                } else {
+                    const freeDirs = DIRS.filter(d => !isTileSolidForFighter(r + d.dr, c + d.dc, bot) && !inDanger(r + d.dr, c + d.dc));
+                    if (freeDirs.length > 0) {
+                        const pick = freeDirs[Math.floor(Math.random() * freeDirs.length)];
+                        bot.aiTarget = { r: r + pick.dr, c: c + pick.dc };
+                    }
+                }
+            }
+
+            if (bot.aiTarget) {
+                const tx = (bot.aiTarget.c + 0.5) * TILE_SIZE;
+                const ty = (bot.aiTarget.r + 0.5) * TILE_SIZE;
+                if (Math.hypot(tx - bot.x, ty - bot.y) > 2) {
+                    moveFighter(bot, tx - bot.x, ty - bot.y, dt);
+                } else {
+                    bot.isMoving = false;
+                }
+            }
+        }
+
+        function updateMonsters(dt) {
+            for (const m of monsters) {
+                if (!m.alive) continue;
+                if (m.invulnTimer > 0) m.invulnTimer = Math.max(0, m.invulnTimer - dt);
+
+                const nx = m.x + m.dir.dc * m.speed * dt;
+                const ny = m.y + m.dir.dr * m.speed * dt;
+                const checkR = Math.floor((ny + m.dir.dr * 8) / TILE_SIZE);
+                const checkC = Math.floor((nx + m.dir.dc * 8) / TILE_SIZE);
+
+                const canPassBrick = m.type === 'GHOST';
+                const blocked =
+                    checkR <= 0 || checkR >= ROWS - 1 ||
+                    checkC <= 0 || checkC >= COLS - 1 ||
+                    grid[checkR][checkC] === TILE.WALL ||
+                    (!canPassBrick && grid[checkR][checkC] === TILE.BRICK) ||
+                    bombs.some(b => b.r === checkR && b.c === checkC);
+
+                if (!blocked && Math.random() > 0.015) {
+                    m.x = nx;
+                    m.y = ny;
+                } else {
+                    const valid = DIRS.filter(d => {
+                        const tr = Math.floor(m.y / TILE_SIZE) + d.dr;
+                        const tc = Math.floor(m.x / TILE_SIZE) + d.dc;
+                        if (tr <= 0 || tr >= ROWS - 1 || tc <= 0 || tc >= COLS - 1) return false;
+                        if (grid[tr][tc] === TILE.WALL) return false;
+                        if (!canPassBrick && grid[tr][tc] === TILE.BRICK) return false;
+                        return true;
+                    });
+                    if (valid.length > 0) {
+                        m.dir = valid[Math.floor(Math.random() * valid.length)];
+                    }
+                }
+
+                for (const f of fighters) {
+                    if (!f.alive) continue;
+                    if (Math.hypot(f.x - m.x, f.y - m.y) < 14) {
+                        applyHitToFighter(f);
+                    }
+                }
+            }
+
+            if (portalTile && !portalTile.open && monsters.every(m => !m.alive)) {
+                portalTile.open = true;
+                grid[portalTile.r][portalTile.c] = TILE.EMPTY;
+                sfx.powerup();
+                floatingNotice = { text: '🌀 PORTAL DA FASE ABERTO!', timer: 2.2 };
+            }
+        }
+
+        function advanceOrBeatCampaign() {
+            if (matchFinished) return;
+            const currentLvl = currentRoomData?.campaignLevel || 1;
+            if (currentLvl < 20) {
+                const nextLvl = currentLvl + 1;
+                showMatchOverModal(
+                    `FASE ${currentLvl}/20 CONCLUÍDA!`,
+                    'PORTAL ALCANÇADO!',
+                    `PRÓXIMO MAPA: ${CAMPAIGN_STAGES[nextLvl - 1].title}`,
+                    nextLvl
+                );
+                broadcastMatchEvent({
+                    type: 'MATCH_OVER',
+                    badge: `FASE ${currentLvl}/20 CONCLUÍDA!`,
+                    title: 'PORTAL ALCANÇADO!',
+                    subtitle: `PRÓXIMO MAPA: ${CAMPAIGN_STAGES[nextLvl - 1].title}`,
+                    nextCampaignLevel: nextLvl
+                });
+            } else {
+                showMatchOverModal(
+                    'CAMPANHA 20 FASES ZERADA! 🏆',
+                    'HERÓIS LENDÁRIOS!',
+                    'VOCÊS DERROTARAM O REI SOMBRA E COMPLETARAM TODOS OS 20 MAPAS!',
+                    1
+                );
+                broadcastMatchEvent({
+                    type: 'MATCH_OVER',
+                    badge: 'CAMPANHA ZERADA! 🏆',
+                    title: 'HERÓIS LENDÁRIOS!',
+                    subtitle: 'TODOS OS 20 MAPAS FORAM CONCLUÍDOS!',
+                    nextCampaignLevel: 1
+                });
+            }
+        }
+
+        function checkMatchOutcome() {
+            if (matchFinished || !currentRoomData) return;
+            const mode = currentRoomData.mode || 'CAMPAIGN';
+            const aliveFighters = fighters.filter(f => f.alive);
+
+            if (mode === 'CAMPAIGN') {
+                if (aliveFighters.length === 0) {
+                    showMatchOverModal('FIM DE JOGO', 'MISSÃO FALHOU', 'TODOS OS JOGADORES CAÍRAM! VOLTE À SALA OU TENTE NOVAMENTE.', currentRoomData.campaignLevel || 1);
+                }
+            } else if (mode === 'COMBAT_2V2') {
+                const aliveTeams = new Set(aliveFighters.map(f => f.team));
+                if (aliveTeams.size <= 1) {
+                    const winningTeam = [...aliveTeams][0];
+                    if (winningTeam) {
+                        const teamLabel = winningTeam === 1 ? 'TIME A (AZUL)' : 'TIME B (LARANJA)';
+                        const winnersNames = fighters.filter(f => f.team === winningTeam).map(f => f.nickname).join(' & ');
+                        fighters.filter(f => f.team === winningTeam && !f.isAI).forEach(w => {
+                            if (db && !isOfflineFallback && currentRoomCode) {
+                                const prevWins = currentRoomData.players?.[w.id]?.wins || 0;
+                                db.ref(`rooms/${currentRoomCode}/players/${w.id}/wins`).set(prevWins + 1);
+                            }
+                        });
+                        showMatchOverModal('FIM DO COMBATE 2V2', `🏆 ${teamLabel} VENCEU!`, `DUPLA VENCEDORA: ${winnersNames}`);
+                    } else {
+                        showMatchOverModal('FIM DO COMBATE 2V2', 'EMPATE EXPLOSIVO!', 'AS DUAS DUPLAS CAÍRAM AO MESMO TEMPO!');
+                    }
+                }
+            } else {
+                if (aliveFighters.length <= 1) {
+                    const winner = aliveFighters[0];
+                    const title = winner ? `🏆 ${winner.nickname} VENCEU!` : 'EMPATE EXPLOSIVO!';
+                    const sub = winner ? `COR VENCEDORA: ${winner.skin.name}` : 'NINGUÉM SOBREVIVEU NA ARENA!';
+                    if (winner && !winner.isAI && db && !isOfflineFallback && currentRoomCode) {
+                        const prevWins = currentRoomData.players?.[winner.id]?.wins || 0;
+                        db.ref(`rooms/${currentRoomCode}/players/${winner.id}/wins`).set(prevWins + 1);
+                    }
+                    showMatchOverModal('FIM DO COMBATE', title, sub);
+                }
+            }
+        }
+
+        let pendingNextCampaignLevel = null;
+
+        function showMatchOverModal(badge, title, subtitle, nextLevel = null) {
+            if (matchFinished) return;
+            matchFinished = true;
+            pendingNextCampaignLevel = nextLevel;
+            sfx.win();
+
+            document.getElementById('over-badge').textContent = badge;
+            document.getElementById('over-title').textContent = title;
+            document.getElementById('over-subtitle').textContent = subtitle;
+
+            const rematchBtn = document.getElementById('btn-rematch-now');
+            if (currentRoomData?.mode === 'CAMPAIGN' && nextLevel && nextLevel > (currentRoomData.campaignLevel || 1)) {
+                rematchBtn.textContent = `▶ AVANÇAR PARA FASE ${nextLevel}/20`;
+            } else {
+                rematchBtn.textContent = '🔄 JOGAR NOVAMENTE MESMA SALA';
+            }
+
+            document.getElementById('match-over-overlay').classList.remove('hidden');
+        }
+
+        function returnToLobbyScreen() {
+            stopMatchSyncListeners();
+            gameRunning = false;
+            matchFinished = false;
+            document.getElementById('match-over-overlay').classList.add('hidden');
+            showScreen('lobby');
+            if (currentRoomData) handleRoomSnapshotUpdate(currentRoomData);
+        }
+
+        document.getElementById('btn-back-to-lobby').addEventListener('click', () => {
+            sfx.select();
+            if (currentRoomData) {
+                currentRoomData.status = 'LOBBY';
+                if (pendingNextCampaignLevel) currentRoomData.campaignLevel = pendingNextCampaignLevel;
+                if (db && !isOfflineFallback && currentRoomCode) {
+                    db.ref(`rooms/${currentRoomCode}`).update({
+                        status: 'LOBBY',
+                        campaignLevel: currentRoomData.campaignLevel || 1
+                    });
+                } else {
+                    returnToLobbyScreen();
+                }
+            } else {
+                returnToLobbyScreen();
+            }
+        });
+
+        document.getElementById('btn-rematch-now').addEventListener('click', () => {
+            sfx.select();
+            if (!currentRoomData) return;
+            const newSeed = Math.floor(Math.random() * 899999 + 100000);
+            if (pendingNextCampaignLevel) currentRoomData.campaignLevel = pendingNextCampaignLevel;
+            currentRoomData.seed = newSeed;
+            currentRoomData.status = 'PLAYING';
+
+            if (db && !isOfflineFallback && currentRoomCode) {
+                db.ref(`rooms/${currentRoomCode}/match`).remove();
+                db.ref(`rooms/${currentRoomCode}`).update({
+                    seed: newSeed,
+                    campaignLevel: currentRoomData.campaignLevel || 1,
+                    status: 'PLAYING',
+                    updatedAt: Date.now()
+                });
+                startMatchFromRoom(currentRoomData);
+            } else {
+                startMatchFromRoom(currentRoomData);
+            }
+        });
+
+        /**
+         * ============================================================================
+         * 8. LOOP DE ATUALIZAÇÃO E RENDERIZAÇÃO
+         * ============================================================================
+         */
+        const keys = {};
+        let lastDirKey = null;
+        let lastEscPress = -Infinity;
+        const joy = { x: 0, y: 0, active: false };
+
+        function getKeyboardAxis() {
+            const up = keys['ArrowUp'] || keys['KeyW'];
+            const down = keys['ArrowDown'] || keys['KeyS'];
+            const left = keys['ArrowLeft'] || keys['KeyA'];
+            const right = keys['ArrowRight'] || keys['KeyD'];
+
+            if (lastDirKey === 'UP' && up) return { dx: 0, dy: -1 };
+            if (lastDirKey === 'DOWN' && down) return { dx: 0, dy: 1 };
+            if (lastDirKey === 'LEFT' && left) return { dx: -1, dy: 0 };
+            if (lastDirKey === 'RIGHT' && right) return { dx: 1, dy: 0 };
+
+            if (up) return { dx: 0, dy: -1 };
+            if (down) return { dx: 0, dy: 1 };
+            if (left) return { dx: -1, dy: 0 };
+            if (right) return { dx: 1, dy: 0 };
+            return { dx: 0, dy: 0 };
+        }
+
+        function updateGame(dt) {
+            gameClock += dt;
+
+            if (!gameRunning || matchFinished) return;
+
+            if (screenShake > 0) screenShake = Math.max(0, screenShake - dt * 18);
+            if (floatingNotice) {
+                floatingNotice.timer -= dt;
+                if (floatingNotice.timer <= 0) floatingNotice = null;
+            }
+
+            matchTimer = Math.max(0, matchTimer - dt);
+            if (matchTimer <= 0) {
+                showMatchOverModal('TEMPO ESGOTADO!', 'EMPATE NA ARENA', 'VOLTE PARA A SALA PARA INICIAR OUTRO ROUND.');
+                return;
+            }
+
+            for (const f of fighters) {
+                if (f.invulnTimer > 0) f.invulnTimer = Math.max(0, f.invulnTimer - dt);
+            }
+
+            if (localFighter && localFighter.alive) {
+                let dx = 0;
+                let dy = 0;
+
+                if (joy.active && (joy.x !== 0 || joy.y !== 0)) {
+                    dx = joy.x;
+                    dy = joy.y;
+                } else {
+                    const kb = getKeyboardAxis();
+                    dx = kb.dx;
+                    dy = kb.dy;
+                }
+
+                moveFighter(localFighter, dx, dy, dt);
+
+                if (db && !isOfflineFallback && currentRoomCode && performance.now() - lastNetSync > 50) {
+                    lastNetSync = performance.now();
+                    db.ref(`rooms/${currentRoomCode}/match/positions/${currentUser.uid}`).set({
+                        uid: currentUser.uid,
+                        x: Math.round(localFighter.x),
+                        y: Math.round(localFighter.y),
+                        dir: localFighter.dir,
+                        isMoving: localFighter.isMoving,
+                        alive: localFighter.alive,
+                        mounted: localFighter.mounted
+                    }).catch(() => {});
+                }
+            }
+
+            for (const f of fighters) {
+                if (f.isAI && f.alive) updateBotAI(f, dt);
+            }
+
+            if (monsters.length > 0) {
+                updateMonsters(dt);
+            }
+
+            for (let i = bombs.length - 1; i >= 0; i--) {
+                const b = bombs[i];
+                b.timer -= dt;
+                if (b.timer <= 0) explodeBomb(b);
+            }
+
+            for (let i = explosions.length - 1; i >= 0; i--) {
+                const exp = explosions[i];
+                exp.timer -= dt;
+
+                for (const f of fighters) {
+                    if (!f.alive) continue;
+                    const fr = Math.floor(f.y / TILE_SIZE);
+                    const fc = Math.floor(f.x / TILE_SIZE);
+                    if (fr === exp.r && fc === exp.c) {
+                        applyHitToFighter(f);
+                    }
+                }
+
+                for (const m of monsters) {
+                    if (!m.alive || m.invulnTimer > 0) continue;
+                    const mr = Math.floor(m.y / TILE_SIZE);
+                    const mc = Math.floor(m.x / TILE_SIZE);
+                    if (mr === exp.r && mc === exp.c) {
+                        m.hp -= 1;
+                        m.invulnTimer = 0.65;
+                        if (m.hp <= 0) m.alive = false;
+                    }
+                }
+
+                if (exp.timer <= 0) explosions.splice(i, 1);
+            }
+        }
+
+        function renderGame() {
+            if (!gameRunning) return;
+            ctx.save();
+
+            // 1. Arena 21x21 (504x504 abaixo do HUD de 36px)
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(0, HUD_HEIGHT, 504, 504);
+            ctx.clip();
+
+            ctx.translate(0, HUD_HEIGHT);
+
+            if (screenShake > 0) {
+                ctx.translate(Math.round((Math.random() - 0.5) * screenShake), Math.round((Math.random() - 0.5) * screenShake));
+            }
+
+            const st = currentBiome;
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    const x = c * TILE_SIZE;
+                    const y = r * TILE_SIZE;
+                    ctx.fillStyle = (r + c) % 2 === 0 ? st.floorA : st.floorB;
+                    ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+
+                    if (r > 0 && grid[r - 1][c] !== TILE.EMPTY && grid[r][c] === TILE.EMPTY) {
+                        ctx.fillStyle = st.shadow;
+                        ctx.fillRect(x, y, TILE_SIZE, 4);
+                    }
+
+                    if (grid[r][c] === TILE.WALL) {
+                        ctx.fillStyle = st.wallMain;
+                        ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+                        ctx.fillStyle = st.wallTop;
+                        ctx.fillRect(x, y, TILE_SIZE, 3);
+                        ctx.fillRect(x, y, 3, TILE_SIZE);
+                        ctx.fillStyle = st.wallDark;
+                        ctx.fillRect(x, y + TILE_SIZE - 3, TILE_SIZE, 3);
+                        ctx.fillRect(x + TILE_SIZE - 3, y, 3, TILE_SIZE);
+                    } else if (grid[r][c] === TILE.BRICK) {
+                        ctx.fillStyle = st.mortar;
+                        ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+                        ctx.fillStyle = st.brickMain;
+                        ctx.fillRect(x + 1, y + 1, 10, 10);
+                        ctx.fillRect(x + 13, y + 1, 10, 10);
+                        ctx.fillRect(x + 1, y + 13, 22, 10);
+                        ctx.fillStyle = st.brickLight;
+                        ctx.fillRect(x + 1, y + 1, 10, 2);
+                        ctx.fillRect(x + 13, y + 1, 10, 2);
+                        ctx.fillRect(x + 1, y + 13, 22, 2);
+                    }
+                }
+            }
+
+            if (portalTile && grid[portalTile.r][portalTile.c] === TILE.EMPTY) {
+                const px = portalTile.c * TILE_SIZE;
+                const py = portalTile.r * TILE_SIZE;
+                ctx.fillStyle = portalTile.open
+                    ? (Math.floor(gameClock * 8) % 2 === 0 ? '#38bdf8' : '#a855f7')
+                    : '#475569';
+                ctx.fillRect(px + 3, py + 3, 18, 18);
+                ctx.fillStyle = portalTile.open ? '#fef08a' : '#1e293b';
+                ctx.fillRect(px + 7, py + 7, 10, 10);
+            }
+
+            if (horseEntity && !horseEntity.collected) {
+                const hx = (horseEntity.c + 0.5) * TILE_SIZE;
+                const hy = (horseEntity.r + 0.5) * TILE_SIZE;
+                ctx.strokeStyle = Math.floor(gameClock * 8) % 2 === 0 ? '#fde047' : '#f97316';
+                ctx.lineWidth = 1.5;
+                ctx.strokeRect(horseEntity.c * TILE_SIZE + 2, horseEntity.r * TILE_SIZE + 2, TILE_SIZE - 4, TILE_SIZE - 4);
+                drawUnmountedHorseSprite(ctx, hx, hy, gameClock, 0.9);
+            }
+
+            for (const it of items) {
+                const x = it.c * TILE_SIZE + 2;
+                const y = it.r * TILE_SIZE + 2;
+                ctx.fillStyle = Math.floor(gameClock * 8) % 2 === 0 ? '#fde047' : '#f97316';
+                ctx.fillRect(x, y, 20, 20);
+                ctx.fillStyle = '#0f172a';
+                ctx.fillRect(x + 2, y + 2, 16, 16);
+                ctx.font = '7px "Press Start 2P"';
+                ctx.textAlign = 'center';
+                ctx.fillStyle = it.type === 'BOMB' ? '#38bdf8' : (it.type === 'FIRE' ? '#ef4444' : '#4ade80');
+                ctx.fillText(it.type === 'BOMB' ? '+B' : (it.type === 'FIRE' ? '+F' : '+V'), x + 10, y + 14);
+            }
+
+            for (const b of bombs) {
+                const cx = Math.floor((b.c + 0.5) * TILE_SIZE);
+                const cy = Math.floor((b.r + 0.5) * TILE_SIZE);
+                const r = 8 + Math.floor(Math.sin(gameClock * 11) * 1.2);
+                ctx.fillStyle = b.timer < 0.6 && Math.floor(gameClock * 16) % 2 === 0 ? '#ef4444' : '#111827';
+                ctx.fillRect(cx - r, cy - r + 1, r * 2, r * 2 - 2);
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(cx - r + 3, cy - r + 3, 2, 2);
+                ctx.fillStyle = '#fde047';
+                ctx.fillRect(cx, cy - r - 2, 3, 3);
+            }
+
+            for (const exp of explosions) {
+                const x = exp.c * TILE_SIZE;
+                const y = exp.r * TILE_SIZE;
+                ctx.fillStyle = Math.floor(gameClock * 20) % 2 === 0 ? '#ef4444' : '#f97316';
+                ctx.fillRect(x + 1, y + 1, 22, 22);
+                ctx.fillStyle = '#fef08a';
+                ctx.fillRect(x + 5, y + 5, 14, 14);
+            }
+
+            for (const m of monsters) {
+                if (!m.alive) continue;
+                const mx = Math.floor(m.x);
+                const my = Math.floor(m.y);
+                const sz = m.isBoss ? 12 : 8;
+                ctx.fillStyle = '#141018';
+                ctx.fillRect(mx - sz - 1, my - sz - 1, sz * 2 + 2, sz * 2 + 2);
+                ctx.fillStyle = m.isBoss ? '#dc2626' : (m.type === 'GHOST' ? '#c084fc' : (m.type === 'PYRO' ? '#f97316' : (m.type === 'KNIGHT' ? '#64748b' : '#22c55e')));
+                ctx.fillRect(mx - sz, my - sz, sz * 2, sz * 2);
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(mx - 4, my - 3, 2, 3);
+                ctx.fillRect(mx + 2, my - 3, 2, 3);
+            }
+
+            const is2v2 = currentRoomData?.mode === 'COMBAT_2V2';
+            const sortedFighters = [...fighters].sort((a, b) => a.y - b.y);
+            for (const f of sortedFighters) {
+                if (!f.alive) continue;
+                drawBomberSprite(ctx, f.x, f.y, f.skin, f.dir, f.isMoving ? f.animTime : 0, {
+                    scale: 0.92,
+                    mounted: f.mounted,
+                    invulnBlink: f.invulnTimer > 0
+                });
+
+                ctx.font = '6px "Press Start 2P"';
+                ctx.textAlign = 'center';
+                const labelY = Math.floor(f.y) - (f.mounted ? 23 : 18);
+                const prefix = is2v2 ? (f.team === 1 ? 'A•' : 'B•') : '';
+                const text = prefix + f.nickname.slice(0, 6);
+                ctx.fillStyle = '#000000';
+                ctx.fillText(text, Math.floor(f.x) + 1, labelY + 1);
+                ctx.fillStyle = f === localFighter ? '#fde047' : (is2v2 ? (f.team === 1 ? '#38bdf8' : '#fb923c') : '#ffffff');
+                ctx.fillText(text, Math.floor(f.x), labelY);
+            }
+
+            ctx.restore();
+
+            // 2. HUD Superior Fixo (36px)
+            drawMatchHud();
+
+            ctx.restore();
+        }
+
+        function drawMatchHud() {
+            ctx.fillStyle = '#141224';
+            ctx.fillRect(0, 0, 504, HUD_HEIGHT);
+            ctx.fillStyle = '#f59e0b';
+            ctx.fillRect(0, HUD_HEIGHT - 2, 504, 2);
+
+            const mins = Math.floor(matchTimer / 60);
+            const secs = Math.floor(matchTimer % 60);
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(216, 4, 72, 26);
+            ctx.strokeStyle = '#fde047';
+            ctx.lineWidth = 1.5;
+            ctx.strokeRect(216, 4, 72, 26);
+            ctx.font = '10px "Press Start 2P"';
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#fef08a';
+            ctx.fillText(`${mins}:${String(secs).padStart(2, '0')}`, 252, 22);
+
+            if (localFighter) {
+                ctx.textAlign = 'left';
+                ctx.font = '7px "Press Start 2P"';
+                ctx.fillStyle = '#fde047';
+                ctx.fillText(`${localFighter.skin.name} ${localFighter.mounted ? '🐴2x' : ''}`, 8, 14);
+
+                ctx.fillStyle = '#4ade80';
+                ctx.fillText(
+                    `B:${localFighter.maxBombs} F:${localFighter.fireRange} V:${localFighter.speedLevel}`,
+                    8,
+                    27
+                );
+            }
+
+            ctx.textAlign = 'right';
+            ctx.font = '7px "Press Start 2P"';
+            if (currentRoomData?.mode === 'CAMPAIGN') {
+                const aliveM = monsters.filter(m => m.alive).length;
+                ctx.fillStyle = '#38bdf8';
+                ctx.fillText(`FASE ${currentRoomData.campaignLevel || 1}/20`, 496, 14);
+                ctx.fillStyle = aliveM === 0 ? '#4ade80' : '#fca5a5';
+                ctx.fillText(aliveM === 0 ? 'PORTAL ABERTO!' : `INIMIGOS: ${aliveM}`, 496, 27);
+            } else if (currentRoomData?.mode === 'COMBAT_2V2') {
+                const aliveA = fighters.filter(f => f.alive && f.team === 1).length;
+                const aliveB = fighters.filter(f => f.alive && f.team === 2).length;
+                ctx.fillStyle = '#38bdf8';
+                ctx.fillText('DUPLAS 2V2', 496, 14);
+                ctx.fillStyle = '#e2e8f0';
+                ctx.fillText(`TIME A:${aliveA} vs B:${aliveB}`, 496, 27);
+            } else {
+                const aliveCount = fighters.filter(f => f.alive).length;
+                ctx.fillStyle = '#f59e0b';
+                ctx.fillText('COMBATE PVP', 496, 14);
+                ctx.fillStyle = '#e2e8f0';
+                ctx.fillText(`VIVOS: ${aliveCount}/${fighters.length}`, 496, 27);
+            }
+
+            if (floatingNotice) {
+                ctx.fillStyle = 'rgba(0,0,0,0.82)';
+                ctx.fillRect(82, 42, 340, 20);
+                ctx.strokeStyle = '#fde047';
+                ctx.strokeRect(82, 42, 340, 20);
+                ctx.textAlign = 'center';
+                ctx.font = '7px "Press Start 2P"';
+                ctx.fillStyle = '#fef08a';
+                ctx.fillText(floatingNotice.text, 252, 55);
+            }
+        }
+
+        // --- CONTROLES DE TECLADO (SEM DIAGONAL) ---
+        window.addEventListener('keydown', (e) => {
+            keys[e.code] = true;
+            if (e.code === 'ArrowUp' || e.code === 'KeyW') lastDirKey = 'UP';
+            else if (e.code === 'ArrowDown' || e.code === 'KeyS') lastDirKey = 'DOWN';
+            else if (e.code === 'ArrowLeft' || e.code === 'KeyA') lastDirKey = 'LEFT';
+            else if (e.code === 'ArrowRight' || e.code === 'KeyD') lastDirKey = 'RIGHT';
+
+            if (!gameRunning || matchFinished) return;
+
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) {
+                e.preventDefault();
+            }
+            if (e.code === 'Space' || e.code === 'KeyZ') {
+                triggerPlantBomb(localFighter);
+            } else if (e.code === 'Escape') {
+                if (performance.now() - lastEscPress < 2000) {
+                    lastEscPress = -Infinity;
+                    document.getElementById('btn-back-to-lobby').click();
+                } else {
+                    lastEscPress = performance.now();
+                    floatingNotice = { text: 'APERTE ESC DE NOVO PARA VOLTAR À SALA', timer: 2.0 };
+                }
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            keys[e.code] = false;
+        });
+
+        // --- JOYSTICK TOUCH DE 4 DIREÇÕES PURAS E ZERO DELAY ---
+        (function setupTouchJoystick() {
+            const base = document.getElementById('joy-base');
+            const knob = document.getElementById('joy-knob');
+            const MAX_PULL = 40;
+            const DEAD_ZONE = 6;
+            let activeTouchId = null;
+
+            const setKnob = (x, y) => {
+                knob.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+            };
+
+            const processPoint = (clientX, clientY) => {
+                const rect = base.getBoundingClientRect();
+                const cx = rect.left + rect.width / 2;
+                const cy = rect.top + rect.height / 2;
+                const rawDx = clientX - cx;
+                const rawDy = clientY - cy;
+                const dist = Math.hypot(rawDx, rawDy);
+
+                if (dist < DEAD_ZONE) {
+                    joy.x = 0;
+                    joy.y = 0;
+                    setKnob(0, 0);
+                    return;
+                }
+
+                const pull = Math.min(MAX_PULL, dist);
+                if (Math.abs(rawDx) > Math.abs(rawDy)) {
+                    const signX = Math.sign(rawDx);
+                    joy.x = signX;
+                    joy.y = 0;
+                    setKnob(signX * pull, 0);
+                } else {
+                    const signY = Math.sign(rawDy);
+                    joy.x = 0;
+                    joy.y = signY;
+                    setKnob(0, signY * pull);
+                }
+            };
+
+            const resetJoy = () => {
+                activeTouchId = null;
+                joy.active = false;
+                joy.x = 0;
+                joy.y = 0;
+                setKnob(0, 0);
+                base.classList.remove('active');
+            };
+
+            base.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                if (activeTouchId !== null) return;
+                const t = e.changedTouches[0];
+                activeTouchId = t.identifier;
+                joy.active = true;
+                base.classList.add('active');
+                processPoint(t.clientX, t.clientY);
+            }, { passive: false });
+
+            base.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    const t = e.changedTouches[i];
+                    if (t.identifier === activeTouchId) {
+                        processPoint(t.clientX, t.clientY);
+                        break;
+                    }
+                }
+            }, { passive: false });
+
+            const onTouchEnd = (e) => {
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    if (e.changedTouches[i].identifier === activeTouchId) {
+                        resetJoy();
+                        break;
+                    }
+                }
+            };
+            base.addEventListener('touchend', onTouchEnd, { passive: false });
+            base.addEventListener('touchcancel', onTouchEnd, { passive: false });
+        })();
+
+        // --- Botão vermelho de ataque: resposta imediata ---
+        const btnTouchBomb = document.getElementById('btn-touch-bomb');
+        btnTouchBomb.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            btnTouchBomb.classList.add('pressed');
+            triggerPlantBomb(localFighter);
+        }, { passive: false });
+        ['touchend', 'touchcancel'].forEach(ev =>
+            btnTouchBomb.addEventListener(ev, () => btnTouchBomb.classList.remove('pressed'), { passive: false })
+        );
+        btnTouchBomb.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            btnTouchBomb.classList.add('pressed');
+            triggerPlantBomb(localFighter);
+        });
+        window.addEventListener('mouseup', () => btnTouchBomb.classList.remove('pressed'));
+
+        let lastFrame = performance.now();
+        function mainLoop(now) {
+            const dt = Math.min(0.035, (now - lastFrame) / 1000);
+            lastFrame = now;
+            updateGame(dt);
+            renderGame();
+            requestAnimationFrame(mainLoop);
+        }
+        window.onload = () => requestAnimationFrame(mainLoop);
+    </script>
+    <script>
+        // Remove o selo "Powered by Netlify" (inclusive se for injetado depois)
+        (function () {
+            const SEL = '#netlify-badge, #netlify-badge-container, a[href*="netlify.com"], div[id*="netlify" i], div[class*="netlify" i], iframe[src*="netlify.com"], [data-netlify-badge]';
+            const STYLE_ID = 'no-netlify-badge-style';
+            const CSS = SEL + '{display:none!important;visibility:hidden!important;opacity:0!important;pointer-events:none!important;}';
+
+            function clean(doc) {
+                try {
+                    if (!doc || !doc.body) return;
+                    if (!doc.getElementById(STYLE_ID)) {
+                        const st = doc.createElement('style');
+                        st.id = STYLE_ID;
+                        st.textContent = CSS;
+                        (doc.head || doc.documentElement).appendChild(st);
+                    }
+                    doc.querySelectorAll(SEL).forEach(el => el.remove());
+                    doc.querySelectorAll('body > *:not(script):not(style)').forEach(el => {
+                        const txt = (el.textContent || '').trim();
+                        if (txt.length < 60 && /powered\s+by\s+netlify/i.test(txt)) el.remove();
+                    });
+                } catch (e) { /* ignora */ }
+            }
+
+            function start() {
+                clean(document);
+                new MutationObserver(() => clean(document))
+                    .observe(document.documentElement, { childList: true, subtree: true });
+            }
+
+            if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
+            else start();
+        })();
+    </script>
+</body>
+</html>
