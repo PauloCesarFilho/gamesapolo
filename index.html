@@ -301,7 +301,7 @@
 
                     <div class="relative w-full aspect-[16/10] bg-[#080710] border-2 border-slate-600 mb-3 overflow-hidden">
                         <canvas id="preview-game-4" width="320" height="200" class="pixel-canvas w-full h-full"></canvas>
-                        <div class="absolute top-2 left-2 bg-black/80 border border-pink-400/60 px-1.5 py-0.5 text-[6px] text-pink-300">
+                        <div class="absolute top-9 right-2 bg-black/80 border border-pink-400/60 px-1.5 py-0.5 text-[6px] text-pink-300">
                             NOVO!
                         </div>
                     </div>
@@ -1033,145 +1033,260 @@
             ctx.fillText('EM BREVE', 160, 120);
         }
 
-        // Besourinho pixelado do Cartucho #04 (Bug Panic)
-        function drawPixelBug(ctx, cx, cy, main, dark, light, t, seed = 0) {
-            const x = Math.floor(cx);
-            const y = Math.floor(cy);
-            const leg = Math.floor(t * 12 + seed) % 2 === 0 ? 2 : -2;
+        // ===== Arte do Cartucho #04 (BUG PANIC) - recorte fiel da fase do jogo =====
+const BP_PAL = {
+    H: '#7b3115', G: '#38c838', F: '#f5a42a', D: '#1a1624', O: '#f5a42a',
+    B: '#2060d8', Y: '#f8d820', K: '#3a4a5e', k: '#14122a',
+    g: '#50c818', L: '#98e060', E: '#f0f0f0'
+};
+const BP_PLAYER = [
+    "..HHHHHHH...",
+    ".HGGGGHHHH..",
+    ".HHHHHHHHH..",
+    ".HFFFFFFFH..",
+    ".HFDFFDFFH..",
+    ".HFFFFFFFH..",
+    "..FFFFFFF...",
+    "..BBBBBBBKK.",
+    "OOBBBBBBBKK.",
+    ".BBBYYBBBKK.",
+    "..BBBBBBBKY."
+];
+const BP_BUG = [
+    "...ggggggg..",
+    "..LgggggEgg.",
+    ".Lgggggggggg",
+    "..gLg.gg.gL."
+];
+const BP_BUG_FEET = [".g..g..g..g.", "g..g..g..g.."];
+const BP_LEVEL = [
+    "WWWWWWWDDWWWWWWW",
+    "W..CC.S...C.C..W",
+    "W.SC.CCC..C.CC.W",
+    "W..C...WWW...C.W",
+    "WWW..C.....WWWWW",
+    "W..C.C.C...C...W",
+    "W..............W",
+    "WWWWWWWWWWWWWWWW"
+];
+let bpStatic = null;
 
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
-            ctx.fillRect(x - 10, y + 11, 20, 3);
-
-            ctx.fillStyle = '#05070a';
-            for (let i = 0; i < 3; i++) {
-                const ly = y - 5 + i * 5;
-                const off = i % 2 === 0 ? leg : -leg;
-                ctx.fillRect(x - 14, ly + off, 6, 2);
-                ctx.fillRect(x + 8, ly - off, 6, 2);
-            }
-            ctx.fillRect(x - 6, y - 17, 2, 5);
-            ctx.fillRect(x + 4, y - 17, 2, 5);
-
-            ctx.fillStyle = dark;
-            ctx.fillRect(x - 9, y - 11, 18, 22);
-            ctx.fillRect(x - 7, y - 13, 14, 26);
-
-            ctx.fillStyle = main;
-            ctx.fillRect(x - 7, y - 9, 14, 18);
-            ctx.fillRect(x - 5, y - 11, 10, 22);
-
-            ctx.fillStyle = dark;
-            ctx.fillRect(x - 1, y - 5, 2, 15);
-
-            ctx.fillStyle = light;
-            ctx.fillRect(x - 5, y - 7, 3, 5);
-            ctx.fillRect(x + 2, y - 7, 3, 3);
-
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(x - 4, y - 11, 3, 3);
-            ctx.fillRect(x + 1, y - 11, 3, 3);
-            ctx.fillStyle = '#000000';
-            ctx.fillRect(x - 3, y - 10, 1, 2);
-            ctx.fillRect(x + 2, y - 10, 1, 2);
+function bpSprite(ctx, map, x, y) {
+    for (let r = 0; r < map.length; r++) {
+        for (let c = 0; c < map[r].length; c++) {
+            const ch = map[r][c];
+            if (ch === '.') continue;
+            ctx.fillStyle = BP_PAL[ch];
+            ctx.fillRect(Math.floor(x) + c, Math.floor(y) + r, 1, 1);
         }
+    }
+}
 
-        function drawBugPanicPreview(ctx, t) {
-            // Fundo: placa de circuito escura
-            ctx.fillStyle = '#071a14';
-            ctx.fillRect(0, 0, 320, 200);
+function bpWall(g, x, y) {
+    g.fillStyle = '#6a2c6a'; g.fillRect(x, y, 20, 20);
+    g.fillStyle = '#ef8ee0'; g.fillRect(x + 1, y + 1, 18, 10);
+    g.fillStyle = '#c060b0'; g.fillRect(x + 1, y + 12, 18, 7);
+    g.fillStyle = '#ffffff';
+    [4, 9, 14].forEach(dx => { g.fillRect(x + dx, y + 3, 2, 2); g.fillRect(x + dx, y + 7, 2, 1); });
+    g.fillStyle = '#e8b0d8';
+    [3, 9, 14].forEach(dx => g.fillRect(x + dx, y + 15, 2, 1));
+}
 
-            ctx.strokeStyle = '#0f3328';
-            ctx.lineWidth = 1;
-            const off = Math.floor((t * 10) % 20);
-            for (let x = off; x < 320; x += 20) {
-                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 200); ctx.stroke();
+function bpCrate(g, x, y) {
+    g.fillStyle = '#5a3a18'; g.fillRect(x + 1, y + 1, 18, 18);
+    g.fillStyle = '#d89850'; g.fillRect(x + 2, y + 2, 16, 9);
+    g.fillStyle = '#ecb572'; g.fillRect(x + 3, y + 2, 14, 1);
+    g.fillStyle = '#5a3a18';
+    g.fillRect(x + 4, y + 5, 12, 1);
+    g.fillRect(x + 4, y + 8, 12, 1);
+    g.fillRect(x + 2, y + 11, 16, 1);
+    g.fillStyle = '#a87030'; g.fillRect(x + 2, y + 12, 16, 6);
+    g.fillStyle = '#bf8040'; g.fillRect(x + 4, y + 14, 12, 1);
+}
+
+function bpSafe(g, x, y) {
+    g.fillStyle = '#7c7c8c'; g.fillRect(x + 1, y + 1, 18, 18);
+    g.fillStyle = '#f2f2f2'; g.fillRect(x + 2, y + 2, 16, 10);
+    g.fillStyle = '#dadada';
+    for (let i = 3; i < 12; i += 2) g.fillRect(x + 2, y + i, 16, 1);
+    g.fillStyle = '#1c1c23'; g.fillRect(x + 9, y + 6, 2, 2);
+    g.fillStyle = '#c4c4cc'; g.fillRect(x + 2, y + 13, 16, 5);
+    g.fillStyle = '#9a9aa8'; g.fillRect(x + 2, y + 12, 16, 1);
+}
+
+function bpDoor(g, x, y) {
+    g.fillStyle = '#6a2c6a'; g.fillRect(x, y, 40, 20);
+    g.fillStyle = '#b04aa8'; g.fillRect(x + 2, y + 2, 36, 16);
+    g.fillStyle = '#8a3a86';
+    for (let i = 4; i < 18; i += 3) g.fillRect(x + 2, y + i, 36, 1);
+    g.fillStyle = '#f84858'; g.fillRect(x + 18, y + 7, 4, 5);
+}
+
+function bpBuildStatic() {
+    const c = document.createElement('canvas');
+    c.width = 320; c.height = 200;
+    const g = c.getContext('2d');
+    g.imageSmoothingEnabled = false;
+
+    g.fillStyle = '#000000'; g.fillRect(0, 0, 320, 200);
+    g.fillStyle = '#40a8a0'; g.fillRect(0, 22, 320, 160);
+
+    // aneis decorativos no chao
+    g.strokeStyle = '#2f8c86'; g.lineWidth = 1;
+    for (let r = 1; r < 7; r++) {
+        for (let col = 1; col < 15; col++) {
+            if (BP_LEVEL[r][col] !== '.') continue;
+            const h = Math.abs(Math.sin(col * 12.9898 + r * 78.233) * 43758.5453) % 1;
+            if (h < 0.22) {
+                g.beginPath();
+                g.arc(col * 20 + 10.5, 22 + r * 20 + 10.5, 5.5, 0, Math.PI * 2);
+                g.stroke();
             }
-            for (let y = off; y < 200; y += 20) {
-                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(320, y); ctx.stroke();
-            }
-
-            // Trilhas e chips
-            ctx.fillStyle = '#14573f';
-            ctx.fillRect(0, 150, 120, 3);
-            ctx.fillRect(117, 150, 3, 36);
-            ctx.fillRect(200, 120, 120, 3);
-            ctx.fillRect(200, 120, 3, 60);
-            ctx.fillStyle = '#0b231b';
-            ctx.fillRect(262, 140, 40, 40);
-            ctx.fillStyle = '#14573f';
-            ctx.fillRect(264, 142, 36, 36);
-            ctx.fillStyle = '#0b231b';
-            ctx.fillRect(270, 148, 24, 24);
-            for (let i = 0; i < 4; i++) {
-                ctx.fillStyle = '#facc15';
-                ctx.fillRect(259, 146 + i * 9, 3, 3);
-                ctx.fillRect(302, 146 + i * 9, 3, 3);
-            }
-
-            // Besouros em pânico
-            const bugs = [
-                { m: '#ef4444', d: '#7f1d1d', l: '#fca5a5', bx: 70,  by: 120, rx: 26, ry: 14, sp: 2.4 },
-                { m: '#22c55e', d: '#14532d', l: '#bbf7d0', bx: 150, by: 150, rx: 34, ry: 10, sp: 1.9 },
-                { m: '#f59e0b', d: '#78350f', l: '#fde68a', bx: 232, by: 110, rx: 22, ry: 16, sp: 2.8 },
-                { m: '#38bdf8', d: '#0c4a6e', l: '#bae6fd', bx: 110, by: 82,  rx: 30, ry: 12, sp: 2.1 }
-            ];
-            bugs.forEach((b, i) => {
-                const px = b.bx + Math.sin(t * b.sp + i * 1.7) * b.rx;
-                const py = b.by + Math.cos(t * b.sp * 1.3 + i) * b.ry;
-                drawPixelBug(ctx, px, py, b.m, b.d, b.l, t, i);
-            });
-
-            // Mata-moscas batendo e mancha de esmagamento
-            const cycle = t % 3;
-            const sx = 200, sy = 150;
-            if (cycle < 0.35) {
-                const drop = Math.floor((cycle / 0.35) * 30);
-                ctx.fillStyle = '#92400e';
-                ctx.fillRect(sx - 3, sy - 70 + drop, 6, 46);
-                ctx.fillStyle = '#1e293b';
-                ctx.fillRect(sx - 15, sy - 26 + drop, 30, 26);
-                ctx.fillStyle = '#64748b';
-                for (let gx = 0; gx < 5; gx++) {
-                    for (let gy = 0; gy < 4; gy++) {
-                        ctx.fillRect(sx - 13 + gx * 6, sy - 24 + drop + gy * 6, 4, 4);
-                    }
-                }
-            } else if (cycle < 1.6) {
-                const fade = 1 - (cycle - 0.35) / 1.25;
-                ctx.globalAlpha = Math.max(0.2, fade);
-                ctx.fillStyle = '#84cc16';
-                ctx.fillRect(sx - 14, sy - 4, 28, 12);
-                ctx.fillRect(sx - 8, sy - 10, 16, 24);
-                ctx.fillRect(sx - 20, sy, 6, 4);
-                ctx.fillRect(sx + 14, sy + 2, 6, 4);
-                ctx.fillStyle = '#d9f99d';
-                ctx.fillRect(sx - 6, sy - 2, 8, 4);
-                ctx.globalAlpha = 1;
-            }
-
-            // Título
-            const alert = Math.floor(t * 3) % 2 === 0;
-            ctx.textAlign = 'center';
-            ctx.font = 'bold 20px "Press Start 2P", monospace';
-            ctx.fillStyle = '#000000';
-            ctx.fillText('BUG PANIC', 164, 44);
-            ctx.fillStyle = alert ? '#ef4444' : '#f87171';
-            ctx.fillText('BUG PANIC', 160, 40);
-
-            ctx.font = 'bold 7px "Press Start 2P", monospace';
-            ctx.fillStyle = '#facc15';
-            ctx.fillText(alert ? '!! ALERTA !!' : '!!         !!', 160, 58);
-
-            // HUD
-            ctx.textAlign = 'left';
-            ctx.font = 'bold 8px "Press Start 2P", monospace';
-            ctx.fillStyle = '#ffffff';
-            ctx.fillText('000420', 8, 13);
-            ctx.textAlign = 'right';
-            ctx.font = '7px "Press Start 2P", monospace';
-            ctx.fillStyle = '#94a3b8';
-            ctx.fillText('HI 003150', 312, 12);
         }
+    }
+
+    // sombra suave embaixo de paredes e caixas
+    for (let r = 0; r < BP_LEVEL.length; r++) {
+        for (let col = 0; col < 16; col++) {
+            const ch = BP_LEVEL[r][col];
+            const x = col * 20, y = 22 + r * 20;
+            if (ch === 'W') bpWall(g, x, y);
+            else if (ch === 'C') bpCrate(g, x, y);
+            else if (ch === 'S') bpSafe(g, x, y);
+            else if (ch === 'D' && BP_LEVEL[r][col - 1] !== 'D') bpDoor(g, x, y);
+        }
+    }
+
+    // linhas de varredura sutis sobre o mapa
+    g.fillStyle = 'rgba(0, 0, 0, 0.05)';
+    for (let y = 22; y < 182; y += 2) g.fillRect(0, y, 320, 1);
+
+    // botao de pausa
+    g.fillStyle = '#101828'; g.fillRect(136, 4, 48, 14);
+    g.strokeStyle = '#3a4a7a'; g.strokeRect(136.5, 4.5, 47, 13);
+    g.fillStyle = '#ffffff';
+    g.fillRect(154, 7, 4, 8); g.fillRect(162, 7, 4, 8);
+
+    // vidas
+    for (let i = 0; i < 3; i++) bpSprite(g, BP_PLAYER.slice(0, 11), 5 + i * 14, 184);
+
+    // fundo da barra TIME
+    g.fillStyle = '#101828'; g.fillRect(78, 185, 172, 11);
+
+    // moldura azul do aparelho
+    g.strokeStyle = '#1d2a55'; g.lineWidth = 2; g.strokeRect(1, 1, 318, 198);
+    return c;
+}
+
+function drawBugPanicPreview(ctx, t) {
+    if (!bpStatic) bpStatic = bpBuildStatic();
+    ctx.drawImage(bpStatic, 0, 0);
+
+    const T = 3.4, fireT = 0.6, speed = 260;
+    const k = Math.floor(t / T);
+    const tk = k * T;
+    const lt = t - tk;
+    const rowY = 22 + 6 * 20;
+
+    const px = tt => 46 + Math.sin(tt * 1.4) * 8;
+    const bugX = tt => 214 + Math.sin(tt * 1.1) * 34;
+
+    const fx = px(tk + fireT) + 13;
+    let hitT = 2.6;
+    for (let s = fireT; s < 2.6; s += 1 / 60) {
+        if (fx + (s - fireT) * speed >= bugX(tk + s) - 6) { hitT = s; break; }
+    }
+    const hitX = bugX(tk + hitT);
+    const firing = lt >= fireT && lt < fireT + 0.15;
+
+    // --- HUD superior ---
+    ctx.textBaseline = 'alphabetic';
+    const score = String((k % 99) * 100 + (lt >= hitT ? 100 : 0)).padStart(6, '0');
+    ctx.font = '7px "Press Start 2P", monospace';
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#e04050'; ctx.fillText('1UP', 8, 10);
+    ctx.textAlign = 'right';
+    ctx.fillText('TOP', 312, 10);
+    ctx.font = '8px "Press Start 2P", monospace';
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#5b6070'; ctx.fillText(score, 9, 20);
+    ctx.fillStyle = '#ffffff'; ctx.fillText(score, 8, 19);
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#5b6070'; ctx.fillText('003150', 313, 20);
+    ctx.fillStyle = '#ffffff'; ctx.fillText('003150', 312, 19);
+
+    // --- Inseto ---
+    let bugVisible = true;
+    if (lt >= hitT && lt < hitT + 0.9) bugVisible = false;
+    else if (lt >= hitT + 0.9 && lt < hitT + 1.5) bugVisible = Math.floor(t * 14) % 2 === 0;
+    if (bugVisible) {
+        const bx = Math.floor(bugX(t) - 6);
+        const by = rowY + 6;
+        ctx.fillStyle = 'rgba(0, 40, 50, 0.35)';
+        ctx.fillRect(bx + 1, by + 10, 10, 2);
+        bpSprite(ctx, BP_BUG, bx, by);
+        bpSprite(ctx, [BP_BUG_FEET[Math.floor(t * 8) % 2]], bx, by + 4);
+    }
+
+    // --- Jogador ---
+    const stepOdd = Math.floor(t * 8) % 2 === 1;
+    const pxx = Math.floor(px(t) - 6);
+    const pyy = rowY + 3 + (stepOdd ? 0 : 1);
+    bpSprite(ctx, BP_PLAYER, pxx, pyy);
+    ctx.fillStyle = BP_PAL.B;
+    ctx.fillRect(pxx + 2, pyy + 11, 2, 2);
+    ctx.fillRect(pxx + (stepOdd ? 6 : 7), pyy + 11, 2, 2);
+    ctx.fillStyle = BP_PAL.k;
+    ctx.fillRect(pxx + 2, pyy + 13, 2, 1);
+    ctx.fillRect(pxx + (stepOdd ? 6 : 7), pyy + 13, 2, 1);
+    if (firing) {
+        ctx.fillStyle = '#fff3a0'; ctx.fillRect(pxx + 11, pyy + 7, 4, 3);
+        ctx.fillStyle = '#f8d820'; ctx.fillRect(pxx + 12, pyy + 8, 2, 1);
+    }
+
+    // --- Tiro ---
+    if (lt >= fireT && lt < hitT) {
+        const bx = fx + (lt - fireT) * speed;
+        const by = pyy + 8;
+        ctx.fillStyle = 'rgba(248, 216, 32, 0.45)'; ctx.fillRect(bx - 12, by, 10, 2);
+        ctx.fillStyle = '#f8d820'; ctx.fillRect(bx - 6, by - 1, 6, 4);
+        ctx.fillStyle = '#ffffff'; ctx.fillRect(bx - 3, by, 4, 2);
+    }
+
+    // --- Explosao ---
+    if (lt >= hitT && lt < hitT + 0.45) {
+        const p = (lt - hitT) / 0.45;
+        const cx = Math.floor(hitX), cy = rowY + 12;
+        const r = 3 + p * 13;
+        for (let i = 0; i < 8; i++) {
+            const a = i * Math.PI / 4 + 0.3;
+            ctx.fillStyle = i % 2 === 0 ? '#f8d820' : (i % 4 === 1 ? '#ffffff' : '#50c818');
+            ctx.fillRect(Math.floor(cx + Math.cos(a) * r) - 1, Math.floor(cy + Math.sin(a) * r) - 1, 3, 3);
+        }
+        const cs = Math.max(0, Math.floor(7 * (1 - p)));
+        ctx.fillStyle = '#ffffff'; ctx.fillRect(cx - (cs >> 1), cy - (cs >> 1), cs, cs);
+    }
+
+    // --- HUD inferior ---
+    ctx.font = '6px "Press Start 2P", monospace';
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#78d0d0'; ctx.fillText('TIME', 47, 196);
+
+    const lit = 28 - Math.floor((t * 1.2) % 10);
+    const segCol = ['#f84858', '#f8d820', '#f0f0f0'];
+    for (let i = 0; i < lit; i++) {
+        ctx.fillStyle = segCol[i % 3];
+        ctx.fillRect(81 + i * 6, 187, 4, 7);
+    }
+
+    ctx.fillStyle = firing ? '#a82038' : '#7a1424'; ctx.fillRect(258, 184, 56, 14);
+    ctx.fillStyle = '#f84858'; ctx.fillRect(258, 184, 56, 1);
+    ctx.font = 'bold 8px "Press Start 2P", monospace';
+    ctx.textAlign = 'center';
+    const ty = firing ? 196 : 195;
+    ctx.fillStyle = '#000000'; ctx.fillText('TIRO', 287, ty + 1);
+    ctx.fillStyle = '#ffffff'; ctx.fillText('TIRO', 286, ty);
+}
 
         function renderAllCanvases(t) {
             // 1. MASCOTE DO TOPO (128x128 HD - APOLO CENTRALIZADO)
